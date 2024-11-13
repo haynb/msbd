@@ -1,27 +1,39 @@
 import whisper
+import numpy as np
+import torch
 
 class WhisperTranscriber:
-    def __init__(self, model_size="base"):
-        """初始化Whisper模型
+    def __init__(self, model_size="tiny"):
+        """初始化Whisper转录器
         
         Args:
-            model_size: 模型大小 ("tiny", "base", "small", "medium", "large")
+            model_size: 模型大小 (tiny, base, small, medium, large)
         """
-        self.model = whisper.load_model(model_size)
-    
-    def transcribe(self, audio_path, language="zh"):
-        """将音频文件转换为文字
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = whisper.load_model(model_size).to(self.device)
+        
+    def transcribe(self, audio_path=None, audio_data=None):
+        """转录音频为文字
         
         Args:
             audio_path: 音频文件路径
-            language: 音频语言 (默认中文)
+            audio_data: 音频数据 numpy array
             
         Returns:
-            str: 转换后的文字
+            str: 转录的文字
         """
-        result = self.model.transcribe(
-            audio_path,
-            language=language,
-            task="transcribe"
-        )
-        return result["text"]
+        try:
+            if audio_path:
+                result = self.model.transcribe(audio_path, language="zh")
+            elif audio_data is not None:
+                audio_data = audio_data.astype(np.float32)
+                if len(audio_data.shape) > 1:
+                    audio_data = np.mean(audio_data, axis=1)
+                result = self.model.transcribe(audio_data, language="zh")
+            else:
+                raise ValueError("必须提供音频文件路径或音频数据")
+                
+            return result["text"]
+        except Exception as e:
+            print(f"转录错误: {str(e)}")
+            return ""

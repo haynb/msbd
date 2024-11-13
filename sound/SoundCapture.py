@@ -17,11 +17,24 @@ class AudioRecorder:
             include_loopback=True
         )
         self.transcriber = None  # 懒加载转写器
+        self.buffer_duration = 5  # 每5秒进行一次转录
+        self.last_transcribe_time = time.time()
     
-    def start_recording(self, duration=None):
-        """开始录音"""
+    def start_recording(self, duration=None, real_time_transcribe=False):
+        """开始录音
+        
+        Args:
+            duration: 录音时长（秒）
+            real_time_transcribe: 是否实时转录
+        """
         print("开始录音...")
         print("按 'q' 键停止录音")
+        
+        if real_time_transcribe:
+            # 预加载转录器
+            if self.transcriber is None:
+                from ai.whisper import WhisperTranscriber
+                self.transcriber = WhisperTranscriber()
         
         self.is_recording = True
         self.audio_data = []
@@ -32,6 +45,12 @@ class AudioRecorder:
                 data = mic.record(numframes=self.buffer_size)
                 self.audio_data.append(data)
                 
+                if real_time_transcribe:
+                    current_time = time.time()
+                    if current_time - self.last_transcribe_time >= self.buffer_duration:
+                        self._transcribe_buffer()
+                        self.last_transcribe_time = current_time
+                
                 time.sleep(0.001)
                 
                 if keyboard.is_pressed('q'):
@@ -39,6 +58,15 @@ class AudioRecorder:
                     
                 if duration and (time.time() - start_time) >= duration:
                     break
+    
+    def _transcribe_buffer(self):
+        """转录当前缓冲区的音频"""
+        if len(self.audio_data) > 0:
+            audio = np.concatenate(self.audio_data)
+            text = self.transcriber.transcribe(audio_data=audio)
+            print(f"实时转录: {text}")
+            # 清空缓冲区
+            self.audio_data = []
     
     def stop_recording(self):
         """停止录音"""
