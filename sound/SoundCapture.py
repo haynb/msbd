@@ -5,7 +5,7 @@ import keyboard
 import time
 
 class AudioRecorder:
-    def __init__(self):
+    def __init__(self, model_size="medium", buffer_duration=10):
         # 基本配置
         self.samplerate = 44100
         self.channels = 2
@@ -17,9 +17,11 @@ class AudioRecorder:
             include_loopback=True
         )
         self.transcriber = None  # 懒加载转写器
-        self.buffer_duration = 5  # 每5秒进行一次转录
+        self.buffer_duration = buffer_duration  # 缓冲区时长（秒）
         self.last_transcribe_time = time.time()
-    
+        self.model_size = model_size
+        self.previous_text = ""  # 用于保持上下文连贯性
+
     def start_recording(self, duration=None, real_time_transcribe=False):
         """开始录音
         
@@ -34,7 +36,7 @@ class AudioRecorder:
             # 预加载转录器
             if self.transcriber is None:
                 from ai.whisper import WhisperTranscriber
-                self.transcriber = WhisperTranscriber()
+                self.transcriber = WhisperTranscriber(self.model_size)
         
         self.is_recording = True
         self.audio_data = []
@@ -60,11 +62,28 @@ class AudioRecorder:
                     break
     
     def _transcribe_buffer(self):
-        """转录当前缓冲区的音频"""
+        """转录当前缓冲区的音频，并保持语义连贯性"""
         if len(self.audio_data) > 0:
             audio = np.concatenate(self.audio_data)
+            
+            # 初始化转写器（如果需要）
+            if self.transcriber is None:
+                from ai.whisper import WhisperTranscriber
+                self.transcriber = WhisperTranscriber(self.model_size)
+            
+            # 转写音频
             text = self.transcriber.transcribe(audio_data=audio)
-            print(f"实时转录: {text}")
+            
+            # 如果转写结果为空，保留之前的文本
+            if not text.strip():
+                return
+                
+            # 输出转写结果
+            print(f"\n[转写结果] {text}")
+            
+            # 更新上下文
+            self.previous_text = text
+            
             # 清空缓冲区
             self.audio_data = []
     
