@@ -22,11 +22,12 @@ class AudioRecorder:
             print(f"初始化录音设备失败: {str(e)}")
             raise
     
-    def start_recording(self, duration=None):
+    def start_recording(self, duration=None, callback=None):
         """开始录音
         
         Args:
             duration: 录音时长（秒）
+            callback: 处理音频数据的回调函数
         """
         print("开始录音...")
         print("按 'q' 键停止录音")
@@ -39,6 +40,8 @@ class AudioRecorder:
             while self.is_recording:
                 try:
                     data = mic.record(numframes=self.buffer_size)
+                    if callback:
+                        callback(data)
                     self.audio_data.append(data)
                     time.sleep(0.0005)
                 except Exception as e:

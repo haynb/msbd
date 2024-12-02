@@ -8,7 +8,7 @@ from aliyunsdkcore.request import CommonRequest
 client = AcsClient(
    os.getenv('ALIYUN_AK_ID'),
    os.getenv('ALIYUN_AK_SECRET'),
-   "cn-shanghai"
+   os.getenv('ALIYUN_REGION_ID')
 );
 
 # 创建request，并设置参数。
