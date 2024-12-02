@@ -3,6 +3,12 @@ import threading
 import nls
 from config.config_loader import ConfigLoader
 import os
+import warnings
+from soundcard import SoundcardRuntimeWarning
+import json
+
+# 忽略 SoundcardRuntimeWarning
+warnings.filterwarnings("ignore", category=SoundcardRuntimeWarning)
 
 class AliyunSpeechRecognizer:
     def __init__(self):
@@ -21,8 +27,22 @@ class AliyunSpeechRecognizer:
         
     def on_sentence_end(self, message, *args):
         """句子结束回调"""
-        result = message.get('payload', {}).get('result', '')
-        print(f"识别结果: {result}")
+        try:
+            # 检查消息类型并正确处理
+            if isinstance(message, dict):
+                result = message.get('payload', {}).get('result', '')
+            else:
+                # 如果是字符串，可能需要解析 JSON
+                try:
+                    message_dict = json.loads(message)
+                    result = message_dict.get('payload', {}).get('result', '')
+                except json.JSONDecodeError:
+                    # 如果不是有效的 JSON，直接使用消息内容
+                    result = str(message)
+            
+            print(f"识别结果: {result}")
+        except Exception as e:
+            print(f"处理识别结果时出错: {str(e)}")
         
     def on_error(self, message, *args):
         """错误回调"""
@@ -31,6 +51,29 @@ class AliyunSpeechRecognizer:
     def on_close(self, *args):
         """连接关闭回调"""
         print("语音识别连接已关闭")
+        
+    def on_start(self, *args):
+        """连接开始回调"""
+        print("语音识别连接已建立")
+
+    def on_result_chg(self, message, *args):
+        """结果变化回调"""
+        try:
+            # 检查消息类型并正确处理
+            if isinstance(message, dict):
+                result = message.get('payload', {}).get('result', '')
+            else:
+                # 如果是字符串，可能需要解析 JSON
+                try:
+                    message_dict = json.loads(message)
+                    result = message_dict.get('payload', {}).get('result', '')
+                except json.JSONDecodeError:
+                    # 如果不是有效的 JSON，直接使用消息内容
+                    result = str(message)
+            
+            print(f"实时识别结果: {result}")
+        except Exception as e:
+            print(f"处理识别结果时出错: {str(e)}")
         
     def start_recognition(self):
         """开始语音识别"""
@@ -43,7 +86,9 @@ class AliyunSpeechRecognizer:
                 on_sentence_begin=self.on_sentence_begin,
                 on_sentence_end=self.on_sentence_end,
                 on_error=self.on_error,
-                on_close=self.on_close
+                on_close=self.on_close,
+                on_start=self.on_start,
+                on_result_changed=self.on_result_chg
             )
             
             self.recognizer.start(
@@ -65,7 +110,6 @@ class AliyunSpeechRecognizer:
         """
         if not self.is_running or not self.recognizer:
             return
-            
         try:
             # 将音频数据分片发送（每片640字节）
             chunks = [audio_data[i:i+640] for i in range(0, len(audio_data), 640)]

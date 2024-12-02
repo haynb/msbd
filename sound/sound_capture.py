@@ -7,8 +7,8 @@ import time
 class AudioRecorder:
     def __init__(self, model_size="medium", buffer_duration=10):
         # 基本配置
-        self.samplerate = 44100
-        self.channels = 2
+        self.samplerate = 16000
+        self.channels = 1
         self.buffer_size = 4096
         self.audio_data = []
         self.is_recording = False

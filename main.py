@@ -16,8 +16,9 @@ if __name__ == "__main__":
         audio_recorder = AudioRecorder()
         
         def process_audio_callback(data):
-            # 将音频数据转换为PCM格式
-            pcm_data = (data * 32767).astype(np.int16)
+            # 转换为单声道
+            mono_data = data.mean(axis=1)
+            pcm_data = (mono_data * 32767).astype(np.int16).tobytes()
             recognizer.process_audio(pcm_data)
             
         audio_recorder.start_recording(callback=process_audio_callback)
