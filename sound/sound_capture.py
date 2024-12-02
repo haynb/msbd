@@ -1,5 +1,4 @@
 import soundcard as sc
-import soundfile as sf
 import numpy as np
 import keyboard
 import time
@@ -10,7 +9,6 @@ class AudioRecorder:
         self.samplerate = 16000
         self.channels = 1
         self.buffer_size = 4096
-        self.audio_data = []
         self.is_recording = False
         # 添加错误处理
         try:
@@ -23,17 +21,16 @@ class AudioRecorder:
             raise
     
     def start_recording(self, duration=None, callback=None):
-        """开始录音
+        """开始捕获系统音频
         
         Args:
-            duration: 录音时长（秒）
+            duration: 捕获时长（秒）
             callback: 处理音频数据的回调函数
         """
-        print("开始录音...")
-        print("按 'q' 键停止录音")
+        print("开始捕获系统音频...")
+        print("按 'q' 键停止")
         
         self.is_recording = True
-        self.audio_data = []
         
         with self.loopback.recorder(samplerate=self.samplerate, channels=self.channels) as mic:
             start_time = time.time()
@@ -42,10 +39,9 @@ class AudioRecorder:
                     data = mic.record(numframes=self.buffer_size)
                     if callback:
                         callback(data)
-                    self.audio_data.append(data)
                     time.sleep(0.0005)
                 except Exception as e:
-                    print(f"录音过程中出错: {str(e)}")
+                    print(f"音频捕获过程中出错: {str(e)}")
                     break
                     
                 if keyboard.is_pressed('q'):
@@ -55,17 +51,5 @@ class AudioRecorder:
                     break
     
     def stop_recording(self):
-        """停止录音"""
+        """停止捕获"""
         self.is_recording = False
-    
-    def save_recording(self, custom_filename=None):
-        """保存录音"""
-        if not self.audio_data:
-            print("没有可保存的录音数据")
-            return
-            
-        audio = np.concatenate(self.audio_data)
-        filename = custom_filename or f"system_audio_{int(time.time())}.wav"
-        sf.write(filename, audio, self.samplerate)
-        self.last_saved_file = filename
-        print(f"录音已保存为: {filename}")
