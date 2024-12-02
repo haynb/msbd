@@ -5,7 +5,7 @@ import keyboard
 import time
 
 class AudioRecorder:
-    def __init__(self):
+    def __init__(self, model_size="medium", buffer_duration=10):
         # 基本配置
         self.samplerate = 44100
         self.channels = 2

@@ -8,4 +8,4 @@ if __name__ == "__main__":
         # 保存录音
         audio_recorder.save_recording()
     except Exception as e:
-        print(f"录音出错: {str(e)}")
+        print(f"错误: {str(e)}")
