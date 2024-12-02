@@ -10,12 +10,14 @@ import json
 # 忽略 SoundcardRuntimeWarning
 warnings.filterwarnings("ignore", category=SoundcardRuntimeWarning)
 
+URL="wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
+
 class AliyunSpeechRecognizer:
     def __init__(self):
         # 获取配置
         config = ConfigLoader().aliyun_config
         self.appkey = config['app_key']
-        self.url = "wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
+        self.url = URL
         
         # 初始化语音识别器
         self.recognizer = None
@@ -116,7 +118,6 @@ class AliyunSpeechRecognizer:
             for chunk in chunks:
                 if len(chunk) == 640:  # 确保数据块完整
                     self.recognizer.send_audio(bytes(chunk))
-                    time.sleep(0.01)  # 控制发送速率
                     
         except Exception as e:
             print(f"处理音频数据失败: {str(e)}")

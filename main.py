@@ -2,6 +2,25 @@ from sound.sound_capture import AudioRecorder
 from config.config_loader import ConfigLoader
 from ai.ali.speech_recognition import AliyunSpeechRecognizer
 import numpy as np
+        
+def process_audio_callback(data):
+    # 转换为单声道
+    mono_data = data.mean(axis=1) if len(data.shape) > 1 else data
+    
+    # 音量归一化
+    if mono_data.max() != 0:
+        normalized_data = mono_data / np.max(np.abs(mono_data))
+    else:
+        normalized_data = mono_data
+        
+    # 简单的降噪：去除低于阈值的噪音
+    noise_threshold = 0.02
+    normalized_data[np.abs(normalized_data) < noise_threshold] = 0
+    
+    # 转换为PCM格式
+    pcm_data = (normalized_data * 32767).astype(np.int16).tobytes()
+    recognizer.process_audio(pcm_data)
+
 
 if __name__ == "__main__":
     try:
@@ -14,13 +33,7 @@ if __name__ == "__main__":
         
         # 录制音频
         audio_recorder = AudioRecorder()
-        
-        def process_audio_callback(data):
-            # 转换为单声道
-            mono_data = data.mean(axis=1)
-            pcm_data = (mono_data * 32767).astype(np.int16).tobytes()
-            recognizer.process_audio(pcm_data)
-            
+
         audio_recorder.start_recording(callback=process_audio_callback)
         
     except Exception as e:

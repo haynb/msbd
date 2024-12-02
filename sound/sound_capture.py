@@ -8,7 +8,7 @@ class AudioRecorder:
         # 基本配置
         self.samplerate = 16000
         self.channels = 1
-        self.buffer_size = 4096
+        self.buffer_size = 3200
         self.is_recording = False
         # 添加错误处理
         try:
