@@ -1,0 +1,6 @@
+soundcard
+soundfile
+numpy
+keyboard
+pyyaml
+aliyun-python-sdk-core 
