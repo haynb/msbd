@@ -30,6 +30,11 @@ class ConfigLoader:
         os.environ['ALIYUN_AK_SECRET'] = aliyun_config.get('access_key_secret', '')
         os.environ['ALIYUN_REGION_ID'] = aliyun_config.get('region_id', 'cn-shanghai')
         os.environ['ALIYUN_APP_KEY'] = aliyun_config.get('app_key', '')
+        
+        # 设置OpenAI相关环境变量
+        openai_config = self._config.get('openai', {})
+        os.environ['OPENAI_API_KEY'] = openai_config.get('api_key', '')
+        os.environ['OPENAI_BASE_URL'] = openai_config.get('base_url', '')
     
     @property
     def aliyun_config(self):
@@ -39,4 +44,16 @@ class ConfigLoader:
             'access_key_secret': os.getenv('ALIYUN_AK_SECRET'),
             'region_id': os.getenv('ALIYUN_REGION_ID'),
             'app_key': os.getenv('ALIYUN_APP_KEY')
+        }
+    
+    @property
+    def openai_config(self):
+        """获取OpenAI配置"""
+        return {
+            'api_key': os.getenv('OPENAI_API_KEY'),
+            'base_url': os.getenv('OPENAI_BASE_URL'),
+            'model': self._config.get('openai', {}).get('model', 'gpt-4o-mini'),
+            'temperature': self._config.get('openai', {}).get('temperature', 0.7),
+            'max_tokens': self._config.get('openai', {}).get('max_tokens', 2000),
+            'timeout': self._config.get('openai', {}).get('timeout', 60)
         }

@@ -4,6 +4,29 @@ import openai
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
+def perform_chat_completion(client, model, messages, temperature, max_tokens, stream, **kwargs):
+    """
+    执行chat completion
+    """
+    return client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=stream,
+        **kwargs
+    )
+
+def perform_functional_call(client, function_name, **kwargs):
+    """
+    执行功能调用
+    """
+    # 假设有一个功能调用接口
+    return client.functions.call(
+        function_name=function_name,
+        **kwargs
+    )
+
 class LLMClient:
     def __init__(
         self,
@@ -62,19 +85,29 @@ class LLMClient:
             API响应
         """
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                stream=stream,
+            response = perform_chat_completion(
+                self.client,
+                self.model,
+                messages,
+                self.temperature,
+                self.max_tokens,
+                stream,
                 **kwargs
             )
             return response
         except Exception as e:
             raise Exception(f"Chat completion failed: {str(e)}")
 
-    # 删除一个空行
+    def functional_call(self, function_name: str, **kwargs) -> Any:
+        """
+        调用功能接口
+        """
+        try:
+            response = perform_functional_call(self.client, function_name, **kwargs)
+            return response
+        except Exception as e:
+            raise Exception(f"Functional call failed: {str(e)}")
+
     def stream_chat(
         self,
         prompt: str,

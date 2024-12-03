@@ -25,10 +25,10 @@ def process_audio_callback(data):
 
 
 if __name__ == "__main__":
-    try:
-        # 加载配置
-        config = ConfigLoader()
+    # 加载配置
+    config = ConfigLoader()
 
+    try:
         # 初始化语音识别器
         recognizer = AliyunSpeechRecognizer()
         recognizer.start_recognition()
@@ -43,9 +43,4 @@ if __name__ == "__main__":
     finally:
         recognizer.stop_recognition()
 
-    # 测试LLMClient
-    llm_client = LLMClient()
-    response = llm_client.chat_completion(
-        messages=[{"role": "user", "content": "Hello"}]
-    )
-    print(response)
+
