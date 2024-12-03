@@ -1,12 +1,43 @@
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union, Callable
+from dataclasses import dataclass
 import openai
+from openai.types.chat import ChatCompletion
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
-def perform_chat_completion(client, model, messages, temperature, max_tokens, stream, **kwargs):
+@dataclass
+class Function:
+    name: str
+    description: str
+    parameters: Dict[str, Any]
+
+
+def perform_chat_completion(
+    client: openai.OpenAI,
+    model: str,
+    messages: List[Dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+    stream: bool,
+    functions: Optional[List[Dict[str, Any]]] = None,
+    function_call: Optional[Union[str, Dict[str, str]]] = None,
+    **kwargs
+) -> ChatCompletion:
     """
     执行chat completion
+    Args:
+        client: OpenAI客户端
+        model: 模型名称
+        messages: 消息列表
+        temperature: 温度参数
+        max_tokens: 最大token数
+        stream: 是否流式输出
+        functions: 可用的函数列表
+        function_call: 函数调用设置
+        **kwargs: 其他参数
+    Returns:
+        ChatCompletion响应
     """
     return client.chat.completions.create(
         model=model,
@@ -14,25 +45,18 @@ def perform_chat_completion(client, model, messages, temperature, max_tokens, st
         temperature=temperature,
         max_tokens=max_tokens,
         stream=stream,
+        functions=functions,
+        function_call=function_call,
         **kwargs
     )
 
-def perform_functional_call(client, function_name, **kwargs):
-    """
-    执行功能调用
-    """
-    # 假设有一个功能调用接口
-    return client.functions.call(
-        function_name=function_name,
-        **kwargs
-    )
 
 class LLMClient:
     def __init__(
         self,
         api_key: str = None,
         base_url: str = None,
-        model: str = "gpt-4o-mini",  # 默认使用gpt-4o-mini
+        model: str = "gpt-4",  # 默认使用gpt-4
         temperature: float = 0.7,  # 默认温度0.7
         max_tokens: int = 2000,  # 默认最大token数2000
         timeout: int = 60,  # 默认请求超时时间60秒
@@ -63,6 +87,26 @@ class LLMClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.max_retries = max_retries
+        self.functions: List[Function] = []
+
+    def register_function(
+        self,
+        name: str,
+        description: str,
+        parameters: Dict[str, Any]
+    ) -> None:
+        """
+        注册一个可以被AI调用的函数
+        Args:
+            name: 函数名称
+            description: 函数描述
+            parameters: 函数参数schema (JSON Schema格式)
+        """
+        self.functions.append(Function(
+            name=name,
+            description=description,
+            parameters=parameters
+        ))
 
     @retry(
         stop=stop_after_attempt(3),
@@ -73,18 +117,38 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         stream: bool = False,
+        auto_function_call: bool = True,
+        function_handlers: Optional[Dict[str, Callable]] = None,
+        return_function_call: bool = False,
         **kwargs
     ) -> Any:
         """
-        调用chat completion API
+        调用chat completion API，支持函数调用
         Args:
             messages: 消息列表
             stream: 是否使用流式响应
+            auto_function_call: 是否自动处理函数调用
+            function_handlers: 函数处理器字典 {function_name: handler_function}
+            return_function_call: 如果为True，当AI决定调用函数时，直接返回函数调用信息而不执行函数
             **kwargs: 其他参数
         Returns:
-            API响应
+            - 如果return_function_call=True且AI决定调用函数：返回(function_name, function_arguments)
+            - 如果auto_function_call=True：返回最终的AI回复（可能包含函数调用后的结果）
+            - 其他情况：返回原始的API响应
         """
         try:
+            # 如果有注册的函数，添加到请求中
+            functions = None
+            if self.functions:
+                functions = [
+                    {
+                        "name": f.name,
+                        "description": f.description,
+                        "parameters": f.parameters
+                    }
+                    for f in self.functions
+                ]
+
             response = perform_chat_completion(
                 self.client,
                 self.model,
@@ -92,21 +156,58 @@ class LLMClient:
                 self.temperature,
                 self.max_tokens,
                 stream,
+                functions=functions,
                 **kwargs
             )
+
+            # 如果AI决定调用函数
+            if not stream and response.choices[0].message.function_call:
+                function_call = response.choices[0].message.function_call
+                
+                # 如果只需要返回函数调用信息
+                if return_function_call:
+                    import json
+                    return (
+                        function_call.name,
+                        json.loads(function_call.arguments)
+                    )
+                
+                # 如果需要自动执行函数
+                if auto_function_call and function_handlers:
+                    handler = function_handlers.get(function_call.name)
+                    if handler:
+                        # 执行函数调用
+                        import json
+                        args = json.loads(function_call.arguments)
+                        result = handler(**args)
+                        
+                        # 将函数调用结果添加到对话中
+                        messages.append({
+                            "role": "assistant",
+                            "content": None,
+                            "function_call": {
+                                "name": function_call.name,
+                                "arguments": function_call.arguments,
+                            },
+                        })
+                        messages.append({
+                            "role": "function",
+                            "name": function_call.name,
+                            "content": str(result),
+                        })
+                        
+                        # 继续对话
+                        return self.chat_completion(
+                            messages,
+                            stream=stream,
+                            auto_function_call=auto_function_call,
+                            function_handlers=function_handlers,
+                            **kwargs
+                        )
+
             return response
         except Exception as e:
             raise Exception(f"Chat completion failed: {str(e)}")
-
-    def functional_call(self, function_name: str, **kwargs) -> Any:
-        """
-        调用功能接口
-        """
-        try:
-            response = perform_functional_call(self.client, function_name, **kwargs)
-            return response
-        except Exception as e:
-            raise Exception(f"Functional call failed: {str(e)}")
 
     def stream_chat(
         self,
