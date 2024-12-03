@@ -158,7 +158,7 @@ class LLMClient:
                                 function_handlers=function_handlers,
                                 **kwargs
                             )
-
+                        
             return response
 
         except Exception as e:
