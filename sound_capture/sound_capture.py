@@ -28,7 +28,7 @@ class AudioRecorder:
             callback: 处理音频数据的回调函数
         """
         print("开始捕获系统音频...")
-        print("按 'q' 键停止")
+        print("按 'F1' 键停止")
         
         self.is_recording = True
         
@@ -44,7 +44,7 @@ class AudioRecorder:
                     print(f"音频捕获过程中出错: {str(e)}")
                     break
                     
-                if keyboard.is_pressed('q'):
+                if keyboard.is_pressed('F1'):
                     break
                     
                 if duration and (time.time() - start_time) >= duration:

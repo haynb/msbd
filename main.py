@@ -1,6 +1,6 @@
-from sound.sound_capture import AudioRecorder
+from sound_capture.sound_capture import AudioRecorder
 from config.config_loader import ConfigLoader
-from ai.ali.speech_recognition import AliyunSpeechRecognizer
+from speech_recognition.ali.speech_recognition import AliyunSpeechRecognizer
 import numpy as np
         
 def process_audio_callback(data):
