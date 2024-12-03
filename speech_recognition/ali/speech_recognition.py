@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore", category=SoundcardRuntimeWarning)
 URL="wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1"
 
 class AliyunSpeechRecognizer:
-    def __init__(self):
+    def __init__(self,do_on_sentence_end=None):
         # 获取配置
         config = ConfigLoader().aliyun_config
         self.appkey = config['app_key']
@@ -22,7 +22,8 @@ class AliyunSpeechRecognizer:
         # 初始化语音识别器
         self.recognizer = None
         self.is_running = False
-        
+        # 句子结束回调
+        self.do_on_sentence_end = do_on_sentence_end
     def on_sentence_begin(self, message, *args):
         """句子开始回调"""
         print(f"开始识别新句子...")
@@ -42,7 +43,8 @@ class AliyunSpeechRecognizer:
                     # 如果不是有效的 JSON，直接使用消息内容
                     result = str(message)
             
-            print(f"识别结果: {result}")
+            if self.do_on_sentence_end:
+                self.do_on_sentence_end(result)
         except Exception as e:
             print(f"处理识别结果时出错: {str(e)}")
         

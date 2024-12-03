@@ -23,14 +23,19 @@ def process_audio_callback(data):
     pcm_data = (normalized_data * 32767).astype(np.int16).tobytes()
     recognizer.process_audio(pcm_data)
 
+def on_sentence_end(result):
+    print(f"识别结果: {result}")
 
 if __name__ == "__main__":
     # 加载配置
     config = ConfigLoader()
 
+    # 初始化LLM客户端
+    llm_client = LLMClient()
+
     try:
         # 初始化语音识别器
-        recognizer = AliyunSpeechRecognizer()
+        recognizer = AliyunSpeechRecognizer(on_sentence_end)
         recognizer.start_recognition()
 
         # 录制音频
