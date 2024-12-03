@@ -1,16 +1,11 @@
 import os
-from typing import Optional, List, Dict, Any, Union, Callable
-from dataclasses import dataclass
+from typing import Optional, List, Dict, Any, Callable, Union, Tuple
 import openai
 from openai.types.chat import ChatCompletion
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-
-@dataclass
-class Function:
-    name: str
-    description: str
-    parameters: Dict[str, Any]
+from .function_registry import FunctionRegistry
+from .chat_manager import ChatManager, ChatMessage
 
 
 def perform_chat_completion(
@@ -24,21 +19,7 @@ def perform_chat_completion(
     function_call: Optional[Union[str, Dict[str, str]]] = None,
     **kwargs
 ) -> ChatCompletion:
-    """
-    执行chat completion
-    Args:
-        client: OpenAI客户端
-        model: 模型名称
-        messages: 消息列表
-        temperature: 温度参数
-        max_tokens: 最大token数
-        stream: 是否流式输出
-        functions: 可用的函数列表
-        function_call: 函数调用设置
-        **kwargs: 其他参数
-    Returns:
-        ChatCompletion响应
-    """
+    """执行chat completion"""
     return client.chat.completions.create(
         model=model,
         messages=messages,
@@ -52,21 +33,23 @@ def perform_chat_completion(
 
 
 class LLMClient:
+    """OpenAI LLM客户端"""
+    
     def __init__(
         self,
         api_key: str = None,
         base_url: str = None,
-        model: str = "gpt-4",  # 默认使用gpt-4
-        temperature: float = 0.7,  # 默认温度0.7
-        max_tokens: int = 2000,  # 默认最大token数2000
-        timeout: int = 60,  # 默认请求超时时间60秒
-        max_retries: int = 3  # 默认最大重试次数3次
+        model: str = "gpt-4",
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+        timeout: int = 60,
+        max_retries: int = 3
     ):
         """
         初始化LLM客户端
         Args:
             api_key: OpenAI API key
-            base_url: API基础URL,默认为OpenAI官方
+            base_url: API基础URL
             model: 使用的模型
             temperature: 温度参数(0-2.0)
             max_tokens: 最大token数
@@ -87,7 +70,10 @@ class LLMClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.max_retries = max_retries
-        self.functions: List[Function] = []
+        
+        # 初始化功能模块
+        self.function_registry = FunctionRegistry()
+        self.chat_manager = ChatManager(self.function_registry)
 
     def register_function(
         self,
@@ -95,18 +81,8 @@ class LLMClient:
         description: str,
         parameters: Dict[str, Any]
     ) -> None:
-        """
-        注册一个可以被AI调用的函数
-        Args:
-            name: 函数名称
-            description: 函数描述
-            parameters: 函数参数schema (JSON Schema格式)
-        """
-        self.functions.append(Function(
-            name=name,
-            description=description,
-            parameters=parameters
-        ))
+        """注册一个可以被AI调用的函数"""
+        self.function_registry.register(name, description, parameters)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -115,40 +91,33 @@ class LLMClient:
     )
     def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: Union[str, List[Dict[str, str]]],
         stream: bool = False,
         auto_function_call: bool = True,
         function_handlers: Optional[Dict[str, Callable]] = None,
         return_function_call: bool = False,
+        system_prompt: Optional[str] = None,
         **kwargs
     ) -> Any:
         """
-        调用chat completion API，支持函数调用
+        执行对话补全
         Args:
-            messages: 消息列表
+            messages: 用户消息或消息列表
             stream: 是否使用流式响应
             auto_function_call: 是否自动处理函数调用
-            function_handlers: 函数处理器字典 {function_name: handler_function}
-            return_function_call: 如果为True，当AI决定调用函数时，直接返回函数调用信息而不执行函数
+            function_handlers: 函数处理器字典
+            return_function_call: 是否只返回函数调用信息
+            system_prompt: 系统提示词
             **kwargs: 其他参数
-        Returns:
-            - 如果return_function_call=True且AI决定调用函数：返回(function_name, function_arguments)
-            - 如果auto_function_call=True：返回最终的AI回复（可能包含函数调用后的结果）
-            - 其他情况：返回原始的API响应
         """
-        try:
-            # 如果有注册的函数，添加到请求中
-            functions = None
-            if self.functions:
-                functions = [
-                    {
-                        "name": f.name,
-                        "description": f.description,
-                        "parameters": f.parameters
-                    }
-                    for f in self.functions
-                ]
+        # 处理输入消息
+        if isinstance(messages, str):
+            if system_prompt:
+                self.chat_manager.add_system_message(system_prompt)
+            self.chat_manager.add_user_message(messages)
+            messages = self.chat_manager.get_messages()
 
+        try:
             response = perform_chat_completion(
                 self.client,
                 self.model,
@@ -156,56 +125,42 @@ class LLMClient:
                 self.temperature,
                 self.max_tokens,
                 stream,
-                functions=functions,
+                functions=self.function_registry.get_all(),
                 **kwargs
             )
 
-            # 如果AI决定调用函数
-            if not stream and response.choices[0].message.function_call:
-                function_call = response.choices[0].message.function_call
-                
-                # 如果只需要返回函数调用信息
-                if return_function_call:
-                    import json
-                    return (
-                        function_call.name,
-                        json.loads(function_call.arguments)
-                    )
-                
-                # 如果需要自动执行函数
-                if auto_function_call and function_handlers:
-                    handler = function_handlers.get(function_call.name)
-                    if handler:
-                        # 执行函数调用
-                        import json
-                        args = json.loads(function_call.arguments)
-                        result = handler(**args)
-                        
-                        # 将函数调用结果添加到对话中
-                        messages.append({
-                            "role": "assistant",
-                            "content": None,
-                            "function_call": {
-                                "name": function_call.name,
-                                "arguments": function_call.arguments,
-                            },
-                        })
-                        messages.append({
-                            "role": "function",
-                            "name": function_call.name,
-                            "content": str(result),
-                        })
-                        
-                        # 继续对话
-                        return self.chat_completion(
-                            messages,
-                            stream=stream,
-                            auto_function_call=auto_function_call,
-                            function_handlers=function_handlers,
-                            **kwargs
-                        )
+            # 处理函数调用
+            if not stream:
+                function_call = self.chat_manager.handle_function_call_response(response)
+                if function_call:
+                    name, args = function_call
+                    
+                    # 如果只需要返回函数调用信息
+                    if return_function_call:
+                        return name, args
+                    
+                    # 如果需要自动执行函数
+                    if auto_function_call and function_handlers:
+                        handler = function_handlers.get(name)
+                        if handler:
+                            # 执行函数调用
+                            result = handler(**args)
+                            
+                            # 记录函数调用和结果
+                            self.chat_manager.add_function_call(name, args)
+                            self.chat_manager.add_function_result(name, result)
+                            
+                            # 继续对话
+                            return self.chat_completion(
+                                self.chat_manager.get_messages(),
+                                stream=stream,
+                                auto_function_call=auto_function_call,
+                                function_handlers=function_handlers,
+                                **kwargs
+                            )
 
             return response
+
         except Exception as e:
             raise Exception(f"Chat completion failed: {str(e)}")
 
@@ -213,8 +168,8 @@ class LLMClient:
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        callback=None
-    ):
+        callback: Optional[Callable[[str], None]] = None
+    ) -> str:
         """
         流式对话接口
         Args:
@@ -222,12 +177,12 @@ class LLMClient:
             system_prompt: 系统提示词
             callback: 用于处理流式响应的回调函数
         """
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
-
-        response = self.chat_completion(messages, stream=True)
+        response = self.chat_completion(
+            prompt,
+            stream=True,
+            system_prompt=system_prompt
+        )
+        
         collected_message = []
         for chunk in response:
             delta = chunk.choices[0].delta.content
