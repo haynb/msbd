@@ -41,3 +41,5 @@ def handle_speech_result(result: str, llm_client: LLMClient):
     )
     print(f"LLM响应: {response}")
     return response
+
+

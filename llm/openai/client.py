@@ -35,6 +35,8 @@ def perform_chat_completion(
 class LLMClient:
     """OpenAI LLM客户端"""
     
+    DEFAULT_SYSTEM_PROMPT = """你是一个AI助手，请帮助用户解决问题。"""  # 设置默认的系统提示词
+    
     def __init__(
         self,
         api_key: str = None,
@@ -74,6 +76,9 @@ class LLMClient:
         # 初始化功能模块
         self.function_registry = FunctionRegistry()
         self.chat_manager = ChatManager(self.function_registry)
+        
+        # 设置固定的系统提示词
+        self.chat_manager.set_system_message(self.DEFAULT_SYSTEM_PROMPT)
 
     def register_function(
         self,
