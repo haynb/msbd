@@ -57,9 +57,13 @@ def register_answer_interview_question_function(llm_client: LLMClient):
                     "type": "boolean",
                     "description": "是否是面试问题",
                 },
-                "answer": {
+                "simplified_answer": {
                     "type": "string",
-                    "description": "面试问题的答案",
+                    "description": "面试问题的简略答案",
+                },
+                "detailed_answer": {
+                    "type": "string",
+                    "description": "面试问题的详细答案",
                 }
             }
         }
