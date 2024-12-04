@@ -46,7 +46,7 @@ class AliyunSpeechRecognizer:
             if self.do_on_sentence_end:
                 self.do_on_sentence_end(result)
         except Exception as e:
-            print(f"处理识别结果时出错: {str(e)}")
+            print(f"on_sentence_end处理识别结果时出错: {str(e)}")
         
     def on_error(self, message, *args):
         """错误回调"""
@@ -74,10 +74,9 @@ class AliyunSpeechRecognizer:
                 except json.JSONDecodeError:
                     # 如果不是有效的 JSON，直接使用消息内容
                     result = str(message)
-            
-            print(f"实时识别结果: {result}")
+            # print(result)
         except Exception as e:
-            print(f"处理识别结果时出错: {str(e)}")
+            print(f"on_result_chg处理识别结果时出错: {str(e)}")
         
     def start_recognition(self):
         """开始语音识别"""

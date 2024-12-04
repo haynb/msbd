@@ -35,7 +35,7 @@ class ConfigLoader:
         openai_config = self._config.get('openai', {})
         os.environ['OPENAI_API_KEY'] = openai_config.get('api_key', '')
         os.environ['OPENAI_BASE_URL'] = openai_config.get('base_url', '')
-    
+        os.environ['OPENAI_MODEL'] = openai_config.get('model', 'gpt-4o-mini')
     @property
     def aliyun_config(self):
         """获取环境变量中的配置"""

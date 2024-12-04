@@ -46,7 +46,7 @@ class LLMClient:
         self,
         api_key: str = None,
         base_url: str = None,
-        model: str = "gpt-4",
+        model: str = "gpt-4o-mini",
         temperature: float = 0.7,
         max_tokens: int = 2000,
         timeout: int = 60,

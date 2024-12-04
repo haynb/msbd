@@ -49,7 +49,7 @@ def register_answer_interview_question_function(llm_client: LLMClient):
     # 注册函数
     llm_client.register_function(
         name="answer_interview_question",
-        description="这个函数用于判断并输出面试问题的答案给用户。用户转述了面试官的话，请你分析之后，传递是否是面试问题，如果是，则给出答案,否则，传递空字符串。",
+        description="这个函数用于判断并输出面试问题的答案给用户。用户转述了面试官的话，请你分析之后，传递是否是面试问题，如果是，则给出答案,否则，下联两个参数传递空字符串。",
         parameters={
             "type": "object",
             "properties": {
@@ -71,10 +71,10 @@ def register_answer_interview_question_function(llm_client: LLMClient):
     pass
 
 def answer_interview_question(is_interview_question: bool, simplified_answer: str, detailed_answer: str):
-    if is_interview_question:
-        print(f"这是面试问题，简略答案: {simplified_answer}，详细答案: {detailed_answer}")
-    else:
-        print("这不是面试问题")
+    # if is_interview_question:
+        # print(f"这是面试问题，简略答案: {simplified_answer}，详细答案: {detailed_answer}")
+    # else:
+        # print("这不是面试问题")
     
     return is_interview_question, simplified_answer, detailed_answer
 
