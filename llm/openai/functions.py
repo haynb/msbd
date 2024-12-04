@@ -70,13 +70,13 @@ def register_answer_interview_question_function(llm_client: LLMClient):
     )
     pass
 
-def answer_interview_question(is_interview_question: bool, answer: str):
+def answer_interview_question(is_interview_question: bool, simplified_answer: str, detailed_answer: str):
     if is_interview_question:
-        print(f"面试问题答案: {answer}")
+        print(f"这是面试问题，简略答案: {simplified_answer}，详细答案: {detailed_answer}")
     else:
         print("这不是面试问题")
     
-    return is_interview_question, answer
+    return is_interview_question, simplified_answer, detailed_answer
 
 
 

@@ -19,7 +19,7 @@ def on_sentence_end(result):
         stream=True,
         function_handlers={"answer_interview_question": llm_functions.answer_interview_question}
     )
-    print("函数结果: " + str(response))
+    # print("函数结果: " + str(response))
     pass
 
 
