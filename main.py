@@ -15,9 +15,9 @@ def on_sentence_end(result):
 if __name__ == "__main__":
     # 加载配置
     config = ConfigLoader()
-    # 初始化LLM客户端
-    llm_client = LLMClient()
     try:
+        # 初始化LLM客户端
+        llm_client = LLMClient()
         # 创建结果处理函数
         def on_sentence_end(result):
             llm_functions.handle_speech_result(result, llm_client)
