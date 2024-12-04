@@ -6,23 +6,7 @@ from llm.openai.client import LLMClient
 import llm.openai.functions as llm_functions
 
 
-def process_audio_callback(data):
-    # 转换为单声道
-    mono_data = data.mean(axis=1) if len(data.shape) > 1 else data
 
-    # 音量归一化
-    if mono_data.max() != 0:
-        normalized_data = mono_data / np.max(np.abs(mono_data))
-    else:
-        normalized_data = mono_data
-
-    # 简单的降噪：去除低于阈值的噪音
-    noise_threshold = 0.02
-    normalized_data[np.abs(normalized_data) < noise_threshold] = 0
-
-    # 转换为PCM格式
-    pcm_data = (normalized_data * 32767).astype(np.int16).tobytes()
-    recognizer.process_audio(pcm_data)
 
 def on_sentence_end(result):
     print(f"识别结果: {result}")
@@ -31,23 +15,18 @@ def on_sentence_end(result):
 if __name__ == "__main__":
     # 加载配置
     config = ConfigLoader()
-
     # 初始化LLM客户端
     llm_client = LLMClient()
-
     try:
         # 创建结果处理函数
         def on_sentence_end(result):
             llm_functions.handle_speech_result(result, llm_client)
-
         # 初始化语音识别器
         recognizer = AliyunSpeechRecognizer(on_sentence_end)
         recognizer.start_recognition()
-
         # 录制音频
-        audio_recorder = AudioRecorder()
-        audio_recorder.start_recording(callback=process_audio_callback)
-
+        audio_recorder = AudioRecorder(recognizer)
+        audio_recorder.start_recording()
     except Exception as e:
         print(f"错误: {str(e)}")
     finally:
