@@ -35,7 +35,12 @@ def perform_chat_completion(
 class LLMClient:
     """OpenAI LLM客户端"""
     
-    DEFAULT_SYSTEM_PROMPT = """你是一个AI助手，请帮助用户解决问题。可以多多使用提供给你的函数和工具。"""  # 设置默认的系统提示词
+    DEFAULT_SYSTEM_PROMPT = """
+    你是一个求职助手，旨在帮助用户检测并回答面试过程中被提问的问题，
+    用户会把面试官说的话转述给你，里面可能包含了面试官的考题，或者其他内容，
+    你需要在判断得出这是面试官的考题的时候帮助用户，
+    你先给出问题的简略答案，然后详细回答并给出问题的解析。
+    """  # 设置默认的系统提示词
     
     def __init__(
         self,
@@ -45,7 +50,8 @@ class LLMClient:
         temperature: float = 0.7,
         max_tokens: int = 2000,
         timeout: int = 60,
-        max_retries: int = 3
+        max_retries: int = 3,
+        interview_type: str = None
     ):
         """
         初始化LLM客户端
@@ -78,7 +84,7 @@ class LLMClient:
         self.chat_manager = ChatManager(self.function_registry)
         
         # 设置固定的系统提示词
-        self.chat_manager.set_system_message(self.DEFAULT_SYSTEM_PROMPT)
+        self.chat_manager.set_system_message(self.DEFAULT_SYSTEM_PROMPT + f"\n面试类型: {interview_type}")
 
     def register_function(
         self,
