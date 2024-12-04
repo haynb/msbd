@@ -85,30 +85,26 @@ class ChatManager:
         self.messages.clear()
         
     def _maintain_conversation_history(self) -> None:
-        """维护对话历史，保持在最大轮数限制内"""
-        # 计算当前用户-助手对话轮数
-        conversation_messages = [msg for msg in self.messages 
-                              if msg.role in ("user", "assistant")]
-        num_turns = len(conversation_messages) // 2
+        """维护对话历史，当超出最大对话轮数时删除最早的对话"""
+        # 计算当前对话轮数（一轮对话从用户消息开始）
+        current_turns = 0
+        user_message_indices = []
         
-        # 如果超过最大轮数，删除最早的一轮对话
-        while num_turns > self.MAX_CONVERSATION_TURNS:
-            # 找到最早的用户消息和助手消息的索引
-            user_indices = [i for i, msg in enumerate(self.messages) 
-                          if msg.role == "user"]
-            assistant_indices = [i for i, msg in enumerate(self.messages) 
-                               if msg.role == "assistant"]
-            
-            if user_indices and assistant_indices:
-                # 删除最早的一轮对话
-                first_user_idx = user_indices[0]
-                first_assistant_idx = assistant_indices[0]
-                indices_to_remove = sorted([first_user_idx, first_assistant_idx], 
-                                        reverse=True)
-                for idx in indices_to_remove:
-                    self.messages.pop(idx)
-                
-            num_turns -= 1
+        for i, msg in enumerate(self.messages):
+            if msg.role == "user":
+                current_turns += 1
+                user_message_indices.append(i)
+        
+        # 如果超出最大轮数限制
+        while current_turns > self.MAX_CONVERSATION_TURNS and user_message_indices:
+            # 获取下一个用户消息的索引（如果存在）
+            next_user_index = user_message_indices[1] if len(user_message_indices) > 1 else len(self.messages)
+            # 删除从开始到下一个用户消息之前的所有消息
+            del self.messages[0:next_user_index]
+            # 更新计数和索引列表
+            current_turns -= 1
+            user_message_indices.pop(0)
+            user_message_indices = [i - next_user_index for i in user_message_indices]
 
     def handle_function_call_response(self, response: Any) -> Optional[Tuple[str, Dict[str, Any]]]:
         """处理包含函数调用的响应"""
