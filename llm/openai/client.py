@@ -102,26 +102,31 @@ class LLMClient:
         function_handlers: Optional[Dict[str, Callable]] = None,
         return_function_call: bool = False,
         system_prompt: Optional[str] = None,
+        continue_after_function_call: bool = False,
         **kwargs
     ) -> Any:
         """
         执行对话补全
         Args:
             messages: 用户消息或消息列表
-            stream: 是否使用流式响应
+            stream: 是否使用流式响应（当有函数调用时会自动禁用流式响应）
             auto_function_call: 是否自动处理函数调用
             function_handlers: 函数处理器字典
             return_function_call: 是否只返回函数调用信息
             system_prompt: 系统提示词
+            continue_after_function_call: 是否在函数调用后继续对话
             **kwargs: 其他参数
         """
         # 处理输入消息
         if isinstance(messages, str):
             if system_prompt:
-                self.chat_manager.add_system_message(system_prompt)
+                self.chat_manager.set_system_message(system_prompt)
             self.chat_manager.add_user_message(messages)
             messages = self.chat_manager.get_messages()
 
+        # 如果有注册的函数，强制关闭流式响应
+        use_stream = stream and not self.function_registry.get_all()
+        
         try:
             response = perform_chat_completion(
                 self.client,
@@ -129,41 +134,46 @@ class LLMClient:
                 messages,
                 self.temperature,
                 self.max_tokens,
-                stream,
+                use_stream,
                 functions=self.function_registry.get_all(),
                 **kwargs
             )
-
+            # 如果是流式响应，直接返回
+            if use_stream:
+                return response
             # 处理函数调用
-            if not stream:
-                function_call = self.chat_manager.handle_function_call_response(response)
-                if function_call:
-                    name, args = function_call
-                    
-                    # 如果只需要返回函数调用信息
-                    if return_function_call:
-                        return name, args
-                    
-                    # 如果需要自动执行函数
-                    if auto_function_call and function_handlers:
-                        handler = function_handlers.get(name)
-                        if handler:
-                            # 执行函数调用
-                            result = handler(**args)
-                            
-                            # 记录函数调用和结果
-                            self.chat_manager.add_function_call(name, args)
-                            self.chat_manager.add_function_result(name, result)
-                            
-                            # 继续对话
+            function_call = self.chat_manager.handle_function_call_response(response)
+            if function_call:
+                name, args = function_call
+                # 如果只需要返回函数调用信息
+                if return_function_call:
+                    return name, args
+                # 如果需要自动执行函数
+                if auto_function_call and function_handlers:
+                    handler = function_handlers.get(name)
+                    if handler:
+                        # 执行函数调用
+                        result = handler(**args)
+                        # 记录函数调用和结果
+                        self.chat_manager.add_function_call(name, args)
+                        self.chat_manager.add_function_result(name, result)
+                        # 根据参数决定是否继续对话
+                        if continue_after_function_call:
                             return self.chat_completion(
                                 self.chat_manager.get_messages(),
                                 stream=stream,
                                 auto_function_call=auto_function_call,
                                 function_handlers=function_handlers,
+                                continue_after_function_call=continue_after_function_call,
                                 **kwargs
                             )
-                        
+                        else:
+                            return result if result is not None else {
+                                "status": "success",
+                                "function": name,
+                                "message": "Function executed successfully"
+                            }
+                    
             return response
 
         except Exception as e:

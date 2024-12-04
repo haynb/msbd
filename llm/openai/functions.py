@@ -37,6 +37,7 @@ def handle_speech_result(result: str, llm_client: LLMClient):
         result,
         auto_function_call=True,
         # return_function_call=True,
+        stream=True,
         function_handlers={"extract_keywords": extract_keywords}
     )
     print(f"LLM响应: {response}")
