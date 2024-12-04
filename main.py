@@ -32,7 +32,7 @@ def handle_speech_result(result: str, llm_client: LLMClient):
     print(f"识别结果: {result}")
     
     # 定义函数处理器
-    def extract_keywords(text: str):
+    def extract_keywords(text: List[str]):
         # 这里可以添加文本处理逻辑
         print(f"提取关键词: {text}")
     
@@ -44,7 +44,10 @@ def handle_speech_result(result: str, llm_client: LLMClient):
             "type": "object",
             "properties": {
                 "text": {
-                    "type": "string",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
                     "description": "关键词",
                 }
             },
