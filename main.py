@@ -1,6 +1,6 @@
 from sound_capture.sound_capture import AudioRecorder
 from config.config_loader import ConfigLoader
-from speech_recognition.ali.speech_recognition import AliyunSpeechRecognizer
+from speech_recognition.recognition_base import SpeechRecognizerFactory
 import numpy as np
 from llm.openai.client import LLMClient
 import llm.openai.functions as llm_functions
@@ -46,11 +46,12 @@ if __name__ == "__main__":
         print("初始化LLM客户端")
         llm_client = LLMClient(interview_type=interview_type,model=os.getenv("OPENAI_MODEL"))
         # 注册函数
-        # llm_functions.register_extract_keywords_function(llm_client)
         llm_functions.register_answer_interview_question_function(llm_client)
-        # 初始化语音识别器
-        recognizer = AliyunSpeechRecognizer(on_sentence_end)
+        
+        # 使用工厂类创建语音识别器
+        recognizer = SpeechRecognizerFactory.create_recognizer('aliyun', on_sentence_end)
         recognizer.start_recognition()
+        
         # 录制音频
         audio_recorder = AudioRecorder(recognizer)
         audio_recorder.start_recording()
