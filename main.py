@@ -1,6 +1,6 @@
 from sound_capture.sound_capture import AudioRecorder
 from config.config_loader import ConfigLoader
-from speech_recognition.base import SpeechRecognizerFactory
+from speech_recognition.factory.speech_recognizer_factory import SpeechRecognizerFactory
 import numpy as np
 from llm.openai.client import LLMClient
 import llm.openai.functions as llm_functions

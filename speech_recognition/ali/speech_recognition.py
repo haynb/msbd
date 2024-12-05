@@ -6,7 +6,7 @@ import os
 import warnings
 from soundcard import SoundcardRuntimeWarning
 import json
-from ..recognition_base import SpeechRecognizer
+from ..base.speech_recognizer import SpeechRecognizer
 
 # 忽略 SoundcardRuntimeWarning
 warnings.filterwarnings("ignore", category=SoundcardRuntimeWarning)
@@ -56,7 +56,7 @@ class AliyunSpeechRecognizer(SpeechRecognizer):
         print("语音识别连接已关闭")
         
     def on_start(self, *args):
-        """��接开始回调"""
+        """接开始回调"""
         print("语音识别连接已建立")
 
     def on_result_chg(self, message, *args):
