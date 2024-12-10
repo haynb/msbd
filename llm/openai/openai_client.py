@@ -83,6 +83,8 @@ class OpenAIClient(LLMBase):
         if function_call:
             function_name = function_call.name
             function_arguments = function_call.arguments
+            # 添加到消息历史
+            self.chat_manager.add_function_call(name=function_name, arguments=function_arguments)
             return function_name, function_arguments
         return None, None
         pass
@@ -91,7 +93,10 @@ class OpenAIClient(LLMBase):
         """执行指定已注册的函数"""
         handler = self.function_handlers.get(name)
         if handler:
-            return handler(**parameters)
+            result = handler(**parameters)
+            # 添加到消息历史
+            self.chat_manager.add_function_result(name=name, result=result)
+            return result
         return None
         pass
 

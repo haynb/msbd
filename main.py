@@ -63,10 +63,8 @@ if __name__ == "__main__":
     try:
         print("请输入这是什么类型什么专业的面试")
         interview_type = input()
-        # interview_type = "程序员"
         # 初始化LLM客户端
         print("初始化LLM客户端")
-        # llm_client = LLMClient(interview_type=interview_type,model=os.getenv("OPENAI_MODEL"))
         llm_client = LLMFactory.create_llm_client("openai",interview_type=interview_type,model=os.getenv("OPENAI_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
         # 注册函数
         functions.register_answer_interview_question_function(llm_client,functions.answer_interview_question)
