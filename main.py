@@ -25,7 +25,7 @@ def on_sentence_end(result):
     )
     end_time = time.time()
     print(f"ai调用时间: {end_time - start_time}秒")
-    
+    print(response)
     if response[0]:  # 如果有函数名
         try:
             # 将字符串转换为字典
@@ -65,7 +65,9 @@ if __name__ == "__main__":
         interview_type = input()
         # 初始化LLM客户端
         print("初始化LLM客户端")
-        llm_client = LLMFactory.create_llm_client("openai",interview_type=interview_type,model=os.getenv("OPENAI_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
+        # llm_client = LLMFactory.create_llm_client("openai",interview_type=interview_type,model=os.getenv("OPENAI_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
+        llm_client = LLMFactory.create_llm_client("deepseek",interview_type=interview_type,model=os.getenv("DEEPSEEK_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
+
         # 注册函数
         functions.register_answer_interview_question_function(llm_client,functions.answer_interview_question)
         

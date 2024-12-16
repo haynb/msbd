@@ -86,6 +86,13 @@ class ConfigLoader:
         os.environ['OPENAI_API_KEY'] = openai_config.get('api_key', '')
         os.environ['OPENAI_BASE_URL'] = openai_config.get('base_url', '')
         os.environ['OPENAI_MODEL'] = openai_config.get('model', 'gpt-4o-mini')
+
+        # 设置DeepSeek相关环境变量
+        deepseek_config = self._config.get('deepseek', {})
+        os.environ['DEEPSEEK_API_KEY'] = deepseek_config.get('api_key', '')
+        os.environ['DEEPSEEK_BASE_URL'] = deepseek_config.get('base_url', '')
+        os.environ['DEEPSEEK_MODEL'] = deepseek_config.get('model', 'deepseek-chat')
+        
     @property
     def aliyun_config(self):
         """获取环境变量中的配置"""
