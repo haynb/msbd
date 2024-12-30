@@ -62,10 +62,31 @@ if __name__ == "__main__":
     try:
         print("请输入这是什么类型什么专业的面试")
         interview_type = input()
+        
+        # 让用户选择模型
+        while True:
+            print("请选择要使用的模型 (1: OpenAI, 2: Deepseek):")
+            model_choice = input()
+            if model_choice in ['1', '2']:
+                break
+            print("无效的选择，请重新输入")
+        
         # 初始化LLM客户端
         print("初始化LLM客户端")
-        # llm_client = LLMFactory.create_llm_client("openai",interview_type=interview_type,model=os.getenv("OPENAI_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
-        llm_client = LLMFactory.create_llm_client("deepseek",interview_type=interview_type,model=os.getenv("DEEPSEEK_MODEL"),system_message=DEFAULT_SYSTEM_PROMPT)
+        if model_choice == '1':
+            llm_client = LLMFactory.create_llm_client(
+                "openai",
+                interview_type=interview_type,
+                model=os.getenv("OPENAI_MODEL"),
+                system_message=DEFAULT_SYSTEM_PROMPT
+            )
+        else:
+            llm_client = LLMFactory.create_llm_client(
+                "deepseek",
+                interview_type=interview_type,
+                model=os.getenv("DEEPSEEK_MODEL"),
+                system_message=DEFAULT_SYSTEM_PROMPT
+            )
 
         # 注册函数
         functions.register_answer_interview_question_function(llm_client,functions.answer_interview_question)
