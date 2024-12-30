@@ -25,7 +25,6 @@ def on_sentence_end(result):
     )
     end_time = time.time()
     print(f"ai调用时间: {end_time - start_time}秒")
-    print(response)
     if response[0]:  # 如果有函数名
         try:
             # 将字符串转换为字典

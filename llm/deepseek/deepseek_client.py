@@ -28,7 +28,7 @@ class DeepSeekClient(LLMBase):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.chat_manager = chat_manager or DeepSeekChatManager(system_message=system_message,interview_type=interview_type,max_messages=max_messages)
-        self.functions = []
+        self.tools = []
         self.function_handlers = {}
         pass
     
@@ -41,6 +41,7 @@ class DeepSeekClient(LLMBase):
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
+                tools=self.tools,
                 stream=stream,
                 **kwargs
             )
@@ -64,22 +65,34 @@ class DeepSeekClient(LLMBase):
             parameters: 函数参数定义
             handler: 函数处理器
         """
-        self.functions.append({
+        # 获取参数列表
+        required_params = []
+        properties = {}
+        # 处理parameters中的属性
+        if "properties" in parameters:
+            properties = parameters["properties"]
+        else:
+            properties = parameters
+            
+        # 所有参数都是必选的
+        required_params = list(properties.keys())
+        # 构建函数定义
+        self.tools.append({
             "type": "function",
             "function": {
                 "name": name,
                 "description": description,
                 "parameters": {
                     "type": "object",
-                    "properties": parameters,
-                    "required": True
+                    "properties": properties,
+                    "required": required_params
                 }
             }
         })
         self.function_handlers[name] = handler
         pass
 
-    def on_function_call(self,message:str):
+    def on_function_call(self, message: str):
         """让AI处理函数调用"""
         self.chat_manager.add_user_message(message)
         messages = self.chat_manager.get_messages()
@@ -87,20 +100,24 @@ class DeepSeekClient(LLMBase):
             model=self.model,
             messages=messages,
             temperature=self.temperature,
-            tools=self.functions,
-            tool_choice="auto",
+            tools=self.tools,
+            tool_choice="required",
             stream=False
         )
+        
         # 处理函数调用
-        function_call = response.choices[0].message.function_call
-        if function_call:
-            function_name = function_call.name
-            function_arguments = function_call.arguments
+        message = response.choices[0].message
+        if message.tool_calls and len(message.tool_calls) > 0:
+            # 获取第一个工具调用
+            tool_call = message.tool_calls[0]
+            function_name = tool_call.function.name
+            function_arguments = tool_call.function.arguments
+            
             # 添加到消息历史
             self.chat_manager.add_function_call(name=function_name, arguments=function_arguments)
             return function_name, function_arguments
+        
         return None, None
-        pass
 
     def use_function(self, name: str, parameters: dict):
         """执行指定已注册的函数"""
