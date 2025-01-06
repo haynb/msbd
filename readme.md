@@ -21,6 +21,10 @@
 3. app_key
 4. region_id
 
+相关文档中都有，这里不再赘述。
+
+<span style="color:red;">新用户可以免费试用！！！</span>
+
 ## 2、获取openai或者deepseek的apiKey
 
 这里自行寻找api
@@ -29,4 +33,4 @@ deepseek：https://www.deepseek.com/
 
 ## 3、运行程序
 
-这里会自动创建配置文件，关闭程序后使用上述参数填充补全配置文件即可。
+这里会自动创建配置文件，关闭程序后使用上述参数填充补全配置文件即可(在config/config.json中)。
