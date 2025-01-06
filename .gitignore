@@ -5,3 +5,4 @@ __pycache__/
 config/settings.yaml
 
 tests/
+token_info.json
