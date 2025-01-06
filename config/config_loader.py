@@ -69,6 +69,14 @@ class ConfigLoader:
                 'temperature': 0.7,
                 'max_tokens': 2000,
                 'timeout': 60
+            },
+            'deepseek': {
+                'api_key': '',
+                'base_url': '',
+                'model': 'deepseek-chat',
+                'temperature': 0.7,
+                'max_tokens': 2000,
+                'timeout': 60
             }
         }
     
