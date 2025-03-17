@@ -129,7 +129,7 @@ class InterviewAssistantUI:
         bottom_frame.pack(fill=tk.X)
         
         # 状态标签
-        self.status_var = tk.StringVar(value="就绪")
+        self.status_var = tk.StringVar(value="准备开始")
         status_frame = ttk.Frame(bottom_frame)
         status_frame.pack(side=tk.LEFT, fill=tk.Y)
         
@@ -189,6 +189,7 @@ class InterviewAssistantUI:
         self.on_sentence_end_callback = on_sentence_end_callback
     
     def add_recognition_text(self, text):
+        text = self.add_separator(text)
         self.recognition_text.insert(tk.END, text + "\n")
         self.recognition_text.see(tk.END)
     
@@ -232,6 +233,10 @@ class InterviewAssistantUI:
         
         # 每100毫秒检查一次消息队列
         self.root.after(100, self.process_messages)
+
+    def add_separator(self,text):
+        text = "==============================\n" + text + "\n==============================\n"
+        return text
 
 def resource_path(relative_path):
     """ 获取资源的绝对路径，用于处理PyInstaller打包后的资源路径 """

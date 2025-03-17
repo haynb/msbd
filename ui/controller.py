@@ -59,7 +59,7 @@ class InterviewAssistantController:
             
             # 录制音频
             self.audio_recorder = AudioRecorder(self.recognizer)
-            self.audio_recorder.start_recording()
+            self.audio_recorder.start_recording(30*60) # 30分钟
             
             self.ui.add_to_message_queue("status", "正在录音...")
             
