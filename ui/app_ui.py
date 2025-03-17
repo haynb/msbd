@@ -5,6 +5,9 @@ import queue
 import time
 import os
 import sys
+import ctypes
+from ctypes import windll, wintypes
+import win32gui
 
 class InterviewAssistantUI:
     def __init__(self, root):
@@ -245,6 +248,26 @@ def resource_path(relative_path):
     
     return os.path.join(base_path, relative_path)
 
+
+def hide_window():
+    # 定义常量
+    WDA_NONE = 0x00000000
+    WDA_EXCLUDEFROMCAPTURE = 0x00000011
+
+    # 获取当前窗口句柄
+    hwnd = win32gui.GetForegroundWindow()
+    # 使用SetWindowDisplayAffinity函数
+    result = windll.user32.SetWindowDisplayAffinity(
+        hwnd,  # 窗口句柄
+        WDA_EXCLUDEFROMCAPTURE  # 使窗口无法被捕获
+    )
+
+    if result:
+        print("已成功应用防截图设置")
+    else:
+        print(f"设置失败，错误码: {ctypes.GetLastError()}")
+
+
 def create_app():
     root = tk.Tk()
     
@@ -258,8 +281,5 @@ def create_app():
         print(f"图标加载失败 (这不影响程序运行): {str(e)}")
     
     app = InterviewAssistantUI(root)
+    hide_window()
     return root, app
-
-if __name__ == "__main__":
-    root, app = create_app()
-    root.mainloop() 
