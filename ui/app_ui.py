@@ -194,10 +194,9 @@ class InterviewAssistantUI:
         self.recognition_text.see(tk.END)
     
     def add_ai_response(self, response_type, text):
-        if response_type == "brief":
-            self.ai_response_text.insert(tk.END, "简略答案:\n" + text + "\n\n")
-        elif response_type == "detailed":
-            self.ai_response_text.insert(tk.END, "详细答案:\n" + text + "\n\n")
+        text = self.add_separator(text)
+        if response_type == "result":
+            self.ai_response_text.insert(tk.END, text + "\n\n")
         elif response_type == "not_interview":
             self.ai_response_text.insert(tk.END, "这不是面试问题\n\n")
         else:
@@ -218,10 +217,8 @@ class InterviewAssistantUI:
                 
                 if message_type == "recognition":
                     self.add_recognition_text(message)
-                elif message_type == "ai_brief":
-                    self.add_ai_response("brief", message)
-                elif message_type == "ai_detailed":
-                    self.add_ai_response("detailed", message)
+                elif message_type == "ai_result":
+                    self.add_ai_response("result", message)
                 elif message_type == "not_interview":
                     self.add_ai_response("not_interview", "")
                 elif message_type == "error":

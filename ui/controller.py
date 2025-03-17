@@ -61,7 +61,7 @@ class InterviewAssistantController:
             self.audio_recorder = AudioRecorder(self.recognizer)
             self.audio_recorder.start_recording(30*60) # 30分钟
             
-            self.ui.add_to_message_queue("status", "正在录音...")
+            self.ui.add_to_message_queue("status", "正在监听录音...")
             
         except Exception as e:
             error_message = f"启动错误: {str(e)}"
@@ -115,8 +115,7 @@ class InterviewAssistantController:
                     if not result[0]:
                         self.ui.add_to_message_queue("not_interview", "")
                     else:
-                        self.ui.add_to_message_queue("ai_brief", str(result[1]))
-                        self.ui.add_to_message_queue("ai_detailed", str(result[2]))
+                        self.ui.add_to_message_queue("ai_result", str(result[1]) + "\n\n\n" + str(result[2]))
                         
                 except json.JSONDecodeError as e:
                     error_message = f"参数解析错误: {e}"
