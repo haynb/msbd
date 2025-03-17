@@ -1,5 +1,5 @@
 import tkinter as tk
-from ui.app_ui import create_app
+from ui.app_ui import create_app, Hide_window
 from ui.controller import InterviewAssistantController
 import sys
 import os
@@ -11,7 +11,7 @@ if __name__ == "__main__":
         
         # 创建控制器
         controller = InterviewAssistantController(app)
-        
+        Hide_window()
         # 启动UI主循环
         root.mainloop()
     except Exception as e:

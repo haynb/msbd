@@ -249,7 +249,7 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def hide_window():
+def Hide_window():
     # 定义常量
     WDA_NONE = 0x00000000
     WDA_EXCLUDEFROMCAPTURE = 0x00000011
@@ -266,6 +266,9 @@ def hide_window():
         print("已成功应用防截图设置")
     else:
         print(f"设置失败，错误码: {ctypes.GetLastError()}")
+        print(f"错误详情: {ctypes.FormatError()}")
+        # 弹窗
+        messagebox.showerror("错误", "防截图设置失败，错误码: " + str(ctypes.GetLastError()) + "\n" + "错误详情: " + str(ctypes.FormatError()))
 
 
 def create_app():
@@ -281,5 +284,4 @@ def create_app():
         print(f"图标加载失败 (这不影响程序运行): {str(e)}")
     
     app = InterviewAssistantUI(root)
-    hide_window()
     return root, app
