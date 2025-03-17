@@ -8,6 +8,7 @@ import sys
 import ctypes
 from ctypes import windll, wintypes
 import win32gui
+import win32con
 
 class InterviewAssistantUI:
     def __init__(self, root):
@@ -283,6 +284,37 @@ def Hide_window(root):
         messagebox.showerror("错误", f"防截图设置失败，错误码: {error_code}\n错误详情: {ctypes.FormatError(error_code)}")
 
 
+def prevent_switch_detection(root):
+    """防止窗口被检测到切屏"""
+    # 确保窗口已创建
+    root.update_idletasks()
+    root.update()
+    
+    # 获取窗口句柄
+    hwnd = win32gui.GetForegroundWindow()
+    
+    # 定义常量
+    WS_EX_TOOLWINDOW = 0x00000080
+    WS_EX_NOACTIVATE = 0x08000000
+    
+    # 修改窗口扩展风格
+    # 添加WS_EX_TOOLWINDOW使窗口不出现在任务栏和Alt+Tab列表中
+    # 添加WS_EX_NOACTIVATE使窗口在点击时不获取焦点
+    style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
+                          style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
+    
+    # 将窗口设为顶层窗口，确保始终可见
+    win32gui.SetWindowPos(
+        hwnd, 
+        win32con.HWND_TOPMOST, 
+        0, 0, 0, 0, 
+        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+    )
+    
+    print("已应用防切屏检测设置")
+
+
 def create_app():
     root = tk.Tk()
     
@@ -296,4 +328,11 @@ def create_app():
         print(f"图标加载失败 (这不影响程序运行): {str(e)}")
     
     app = InterviewAssistantUI(root)
+    
+    # 设置防截图
+    Hide_window(root)
+    
+    # 设置防切屏检测
+    prevent_switch_detection(root)
+    
     return root, app
