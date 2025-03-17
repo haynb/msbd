@@ -11,7 +11,8 @@ if __name__ == "__main__":
         
         # 创建控制器
         controller = InterviewAssistantController(app)
-        Hide_window()
+        # 延迟执行防截图设置
+        root.after(500, lambda: Hide_window(root))
         # 启动UI主循环
         root.mainloop()
     except Exception as e:

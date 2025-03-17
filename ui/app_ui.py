@@ -249,26 +249,38 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def Hide_window():
+def Hide_window(root):
+    # 确保窗口已完全创建并显示在前台
+    root.update_idletasks()
+    root.update()
+    
+    # 强制窗口前置
+    root.lift()
+    root.focus_force()
+    
+    # 延迟一小段时间确保窗口真正显示
+    time.sleep(0.1)
+    
     # 定义常量
     WDA_NONE = 0x00000000
     WDA_EXCLUDEFROMCAPTURE = 0x00000011
 
     # 获取当前窗口句柄
     hwnd = win32gui.GetForegroundWindow()
+    
     # 使用SetWindowDisplayAffinity函数
     result = windll.user32.SetWindowDisplayAffinity(
-        hwnd,  # 窗口句柄
-        WDA_EXCLUDEFROMCAPTURE  # 使窗口无法被捕获
+        hwnd,
+        WDA_EXCLUDEFROMCAPTURE
     )
 
     if result:
         print("已成功应用防截图设置")
     else:
-        print(f"设置失败，错误码: {ctypes.GetLastError()}")
-        print(f"错误详情: {ctypes.FormatError()}")
-        # 弹窗
-        messagebox.showerror("错误", "防截图设置失败，错误码: " + str(ctypes.GetLastError()) + "\n" + "错误详情: " + str(ctypes.FormatError()))
+        error_code = ctypes.GetLastError()
+        print(f"设置失败，错误码: {error_code}")
+        print(f"错误详情: {ctypes.FormatError(error_code)}")
+        messagebox.showerror("错误", f"防截图设置失败，错误码: {error_code}\n错误详情: {ctypes.FormatError(error_code)}")
 
 
 def create_app():
