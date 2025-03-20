@@ -9,6 +9,7 @@ import ctypes
 from ctypes import windll, wintypes
 import win32gui
 import win32con
+from screenshot.screenshot_tool import ScreenshotTool
 
 class InterviewAssistantUI:
     def __init__(self, root):
@@ -33,9 +34,13 @@ class InterviewAssistantUI:
         self.on_sentence_end_callback = None
         self.start_recording_callback = None
         self.stop_recording_callback = None
+        self.screenshot_callback = None
         
         # 状态变量
         self.is_recording = False
+        
+        # 创建截图工具
+        self.screenshot_tool = ScreenshotTool(self.root, self.on_screenshot_taken)
     
     def setup_theme(self):
         # 设置样式
@@ -110,8 +115,20 @@ class InterviewAssistantUI:
         middle_frame = ttk.Frame(main_frame)
         middle_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
-        # 创建左右分隔区域
-        paned_window = ttk.PanedWindow(middle_frame, orient=tk.HORIZONTAL)
+        # 创建顶部标签页
+        tab_control = ttk.Notebook(middle_frame)
+        tab_control.pack(fill=tk.BOTH, expand=True)
+        
+        # 创建录音识别标签页
+        record_tab = ttk.Frame(tab_control)
+        tab_control.add(record_tab, text="语音识别")
+        
+        # 创建截图识别标签页
+        screenshot_tab = ttk.Frame(tab_control)
+        tab_control.add(screenshot_tab, text="截图识别")
+        
+        # 在录音标签页中添加分隔窗口
+        paned_window = ttk.PanedWindow(record_tab, orient=tk.HORIZONTAL)
         paned_window.pack(fill=tk.BOTH, expand=True)
         
         # 左侧 - 识别结果
@@ -127,6 +144,43 @@ class InterviewAssistantUI:
         
         self.ai_response_text = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, height=10, font=("微软雅黑", 10))
         self.ai_response_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # 在截图标签页中添加内容
+        screenshot_paned = ttk.PanedWindow(screenshot_tab, orient=tk.HORIZONTAL)
+        screenshot_paned.pack(fill=tk.BOTH, expand=True)
+        
+        # 左侧 - 截图显示
+        screenshot_left_frame = ttk.LabelFrame(screenshot_paned, text="截图区域")
+        screenshot_paned.add(screenshot_left_frame, weight=1)
+        
+        self.screenshot_frame = ttk.Frame(screenshot_left_frame)
+        self.screenshot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        self.screenshot_label = ttk.Label(self.screenshot_frame, text="点击下方按钮进行截图")
+        self.screenshot_label.pack(fill=tk.BOTH, expand=True)
+        
+        screenshot_button_frame = ttk.Frame(screenshot_left_frame)
+        screenshot_button_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.screenshot_button = ttk.Button(
+            screenshot_button_frame, 
+            text="开始截图", 
+            command=self.take_screenshot,
+            style="Record.TButton"
+        )
+        self.screenshot_button.pack(side=tk.RIGHT)
+        
+        # 右侧 - 截图分析结果
+        screenshot_right_frame = ttk.LabelFrame(screenshot_paned, text="AI分析结果")
+        screenshot_paned.add(screenshot_right_frame, weight=1)
+        
+        self.screenshot_result_text = scrolledtext.ScrolledText(
+            screenshot_right_frame, 
+            wrap=tk.WORD, 
+            height=10, 
+            font=("微软雅黑", 10)
+        )
+        self.screenshot_result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # 底部区域 - 控制按钮
         bottom_frame = ttk.Frame(main_frame)
@@ -187,10 +241,11 @@ class InterviewAssistantUI:
         self.recognition_text.delete(1.0, tk.END)
         self.ai_response_text.delete(1.0, tk.END)
     
-    def set_callbacks(self, start_recording_callback, stop_recording_callback, on_sentence_end_callback):
+    def set_callbacks(self, start_recording_callback, stop_recording_callback, on_sentence_end_callback, screenshot_callback=None):
         self.start_recording_callback = start_recording_callback
         self.stop_recording_callback = stop_recording_callback
         self.on_sentence_end_callback = on_sentence_end_callback
+        self.screenshot_callback = screenshot_callback
     
     def add_recognition_text(self, text):
         text = self.add_separator(text)
@@ -225,6 +280,8 @@ class InterviewAssistantUI:
                     self.add_ai_response("result", message)
                 elif message_type == "not_interview":
                     self.add_ai_response("not_interview", "")
+                elif message_type == "screenshot_result":
+                    self.add_screenshot_result(message)
                 elif message_type == "error":
                     self.show_error(message)
                 elif message_type == "status":
@@ -238,6 +295,78 @@ class InterviewAssistantUI:
     def add_separator(self,text):
         text = "==============================\n" + text + "\n==============================\n"
         return text
+
+    def take_screenshot(self):
+        """启动截图过程"""
+        self.screenshot_tool.take_screenshot()
+    
+    def on_screenshot_taken(self, screenshot_path):
+        """截图完成后的回调函数"""
+        if screenshot_path and os.path.exists(screenshot_path):
+            # 更新UI显示截图已保存
+            self.status_var.set(f"截图已保存: {screenshot_path}")
+            
+            # 显示截图
+            try:
+                from PIL import Image, ImageTk
+                
+                # 清除旧标签
+                for widget in self.screenshot_frame.winfo_children():
+                    widget.destroy()
+                
+                # 加载图像
+                img = Image.open(screenshot_path)
+                
+                # 调整图像大小以适应窗口
+                frame_width = self.screenshot_frame.winfo_width() - 10
+                frame_height = self.screenshot_frame.winfo_height() - 10
+                
+                # 确保frame_width和frame_height有合理的值
+                if frame_width < 100:
+                    frame_width = 400
+                if frame_height < 100:
+                    frame_height = 300
+                
+                # 保持纵横比调整大小
+                img_width, img_height = img.size
+                ratio = min(frame_width/img_width, frame_height/img_height)
+                new_width = int(img_width * ratio)
+                new_height = int(img_height * ratio)
+                
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+                
+                # 显示图像
+                photo = ImageTk.PhotoImage(img)
+                img_label = ttk.Label(self.screenshot_frame, image=photo)
+                img_label.image = photo  # 保持引用
+                img_label.pack(padx=5, pady=5)
+                
+                # 添加路径标签
+                path_label = ttk.Label(self.screenshot_frame, text=f"截图路径: {screenshot_path}")
+                path_label.pack(padx=5, pady=5)
+                
+                # 调用截图分析回调函数
+                if self.screenshot_callback:
+                    # 先显示正在分析的提示
+                    self.screenshot_result_text.delete(1.0, tk.END)
+                    self.screenshot_result_text.insert(tk.END, "正在分析截图内容，请稍候...\n")
+                    
+                    # 在新线程中分析截图
+                    threading.Thread(
+                        target=self.screenshot_callback,
+                        args=(screenshot_path,)
+                    ).start()
+                
+            except Exception as e:
+                print(f"显示截图错误: {str(e)}")
+                self.screenshot_label.config(text=f"截图已保存但无法显示: {str(e)}")
+    
+    def add_screenshot_result(self, text):
+        """添加截图分析结果"""
+        text = self.add_separator(text)
+        self.screenshot_result_text.delete(1.0, tk.END)
+        self.screenshot_result_text.insert(tk.END, text + "\n")
+        self.screenshot_result_text.see(tk.END)
 
 def resource_path(relative_path):
     """ 获取资源的绝对路径，用于处理PyInstaller打包后的资源路径 """

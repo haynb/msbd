@@ -152,3 +152,15 @@ class DeepSeekClient(LLMBase):
         
         return response_generator()
         pass
+
+    def analyze_image(self, image_path: str, prompt: str = None):
+        """分析图像内容并返回结果 - DeepSeek不支持图像识别
+        
+        Args:
+            image_path: 图像文件路径
+            prompt: 可选的提示文本，用于引导AI分析图像
+            
+        Returns:
+            错误消息字符串
+        """
+        return "抱歉，DeepSeek模型不支持图像识别功能。请使用OpenAI模型进行图像分析。"

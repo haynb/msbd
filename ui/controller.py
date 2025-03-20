@@ -13,13 +13,15 @@ class InterviewAssistantController:
         self.audio_recorder = None
         self.recognizer = None
         self.llm_client = None
+        self.image_recognition_client = None
         self.config = ConfigLoader()
         
         # 设置UI回调
         self.ui.set_callbacks(
             start_recording_callback=self.start_recording,
             stop_recording_callback=self.stop_recording,
-            on_sentence_end_callback=self.on_sentence_end
+            on_sentence_end_callback=self.on_sentence_end,
+            screenshot_callback=self.analyze_screenshot
         )
         
         # 默认系统提示词
@@ -50,6 +52,9 @@ class InterviewAssistantController:
                     system_message=self.DEFAULT_SYSTEM_PROMPT
                 )
             
+            # 初始化图像识别客户端
+            self.init_image_recognition_client(model_choice)
+            
             # 注册函数
             functions.register_answer_interview_question_function(self.llm_client, functions.answer_interview_question)
             
@@ -68,6 +73,38 @@ class InterviewAssistantController:
             print(error_message)
             self.ui.add_to_message_queue("error", error_message)
             self.stop_recording()
+    
+    def init_image_recognition_client(self, model_choice):
+        """初始化图像识别客户端"""
+        try:
+            # 尝试创建图像识别客户端
+            provider = "openai" if model_choice == "openai" else "deepseek"
+            self.image_recognition_client = LLMFactory.create_image_recognition_client(provider)
+        except Exception as e:
+            error_message = f"图像识别初始化错误: {str(e)}"
+            print(error_message)
+            self.ui.add_to_message_queue("error", error_message)
+    
+    def analyze_screenshot(self, screenshot_path):
+        """分析截图内容"""
+        try:
+            # 检查是否已初始化图像识别客户端
+            if not self.image_recognition_client:
+                # 如果没有，尝试使用OpenAI初始化
+                self.image_recognition_client = LLMFactory.create_image_recognition_client("openai")
+            
+            # 调用图像识别客户端分析图像
+            prompt = "请详细分析这张图片中的内容，描述图片中的元素并解释图片的含义。如果图片包含代码或文本，请将其提取出来。"
+            result = self.image_recognition_client.analyze_image(screenshot_path, prompt)
+            
+            # 将结果发送到UI
+            self.ui.add_to_message_queue("screenshot_result", result)
+            
+        except Exception as e:
+            error_message = f"图像分析错误: {str(e)}"
+            print(error_message)
+            self.ui.add_to_message_queue("error", error_message)
+            self.ui.add_to_message_queue("screenshot_result", f"无法分析图像: {str(e)}")
     
     def stop_recording(self):
         try:
