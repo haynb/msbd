@@ -97,10 +97,10 @@ class ScreenshotTool:
         
     def take_screenshot(self):
         """启动截图过程"""
-        # 创建全屏透明窗口，临时禁用防截图
-        if hasattr(self.root, 'attributes') and '-topmost' in self.root.attributes():
-            self.topmost_state = self.root.attributes('-topmost')
-            self.root.attributes('-topmost', False)
+        # # 创建全屏透明窗口，临时禁用防截图
+        # if hasattr(self.root, 'attributes') and '-topmost' in self.root.attributes():
+        #     self.topmost_state = self.root.attributes('-topmost')
+        #     self.root.attributes('-topmost', False)
         
         # 保存窗口位置以便稍后恢复
         self.root_geometry = self.root.geometry()
@@ -119,6 +119,7 @@ class ScreenshotTool:
         try:
             # 获取全局显示区域信息
             global_area = self.monitor_info[-1]
+            primary_area = self.monitor_info[0]
             
             # 创建全屏透明窗口
             self.screenshot_window = tk.Toplevel()
@@ -150,8 +151,8 @@ class ScreenshotTool:
             
             # 显示提示文本
             self.canvas.create_text(
-                global_area['width'] // 2,
-                global_area['height'] // 2,
+                primary_area['width'] // 2,
+                primary_area['height'] // 2,
                 text="按住鼠标左键并拖动选择区域，松开完成截图\n按ESC取消",
                 fill="black",
                 font=("微软雅黑", 16, "bold"),
