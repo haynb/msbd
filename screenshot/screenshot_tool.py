@@ -7,8 +7,12 @@ from threading import Thread, Event
 import time
 import win32api
 import win32con
+import win32gui
+import ctypes
 import mss
 import mss.tools
+from ctypes import wintypes
+from ctypes import windll
 
 class ScreenshotTool:
     def __init__(self, root, callback=None):
@@ -35,6 +39,9 @@ class ScreenshotTool:
         self.sct = mss.mss()
         # 是否在使用后删除截图文件
         self.auto_delete = True
+        
+        # 应用防截图和防切屏属性给主窗口
+        # self.apply_anti_capture_properties(self.root)
         
     def get_monitor_info(self):
         """获取所有显示器的位置和尺寸信息"""
@@ -72,8 +79,6 @@ class ScreenshotTool:
                 monitors.append(monitor)
             return True
         
-        import ctypes
-        from ctypes import wintypes
         # 定义MonitorEnumProc回调函数类型
         MonitorEnumProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong, ctypes.c_ulong, 
                                            ctypes.POINTER(wintypes.RECT), ctypes.c_double)
@@ -105,6 +110,9 @@ class ScreenshotTool:
         """启动截图过程"""
         # 保存窗口位置以便稍后恢复
         self.root_geometry = self.root.geometry()
+        
+        # 在最小化前确保防截图和防切屏功能已开启
+        self.apply_anti_capture_properties(self.root)
         
         # 临时最小化主窗口
         self.root.iconify()
@@ -191,6 +199,16 @@ class ScreenshotTool:
             self.screenshot_window.update_idletasks()
             self.screenshot_window.update()
             
+            # 强制窗口前置
+            self.screenshot_window.lift()
+            self.screenshot_window.focus_force()
+            
+            # 手动添加防截图属性
+            self.apply_anti_capture_properties(self.screenshot_window)
+            
+            # 检查防护状态
+            self.check_window_protection_status("截图")
+            
             # 打印窗口实际大小
             actual_width = self.screenshot_window.winfo_width()
             actual_height = self.screenshot_window.winfo_height()
@@ -274,9 +292,15 @@ class ScreenshotTool:
                 
                 # 确保截图区域有效
                 if x2 - x1 > 10 and y2 - y1 > 10:
-                    # 先隐藏截图窗口
+                    # 先隐藏截图窗口和主窗口
                     if self.screenshot_window:
                         self.screenshot_window.withdraw()
+                    
+                    # 主窗口最小化
+                    self.root.withdraw()
+                    
+                    # 确保窗口完全隐藏
+                    self.root.update_idletasks()
                     
                     # 获取窗口位置
                     # 注意：在tkinter中，winfo_x和winfo_y返回的是窗口相对于屏幕的位置
@@ -293,6 +317,9 @@ class ScreenshotTool:
                     print(f"选择区域: ({x1}, {y1}) -> ({x2}, {y2})")
                     print(f"窗口位置: ({window_x}, {window_y})")
                     print(f"实际坐标: ({screen_x1}, {screen_y1}) -> ({screen_x2}, {screen_y2})")
+                    
+                    # 短暂延迟确保窗口已完全隐藏
+                    time.sleep(0.2)
                     
                     # 延迟一下以确保窗口真正隐藏
                     self.root.after(200, lambda: self.capture_area(screen_x1, screen_y1, screen_x2, screen_y2))
@@ -437,5 +464,129 @@ class ScreenshotTool:
             if self.screenshot_window:
                 self.screenshot_window.destroy()
                 self.screenshot_window = None
+                
+            # 重新应用防截图和防切屏属性给主窗口
+            self.root.update_idletasks()
+            self.root.update()
+            time.sleep(0.1)  # 短暂延迟确保窗口已完全恢复
+            self.apply_anti_capture_properties(self.root)
+            
+            # 检查主窗口防护状态
+            self.check_window_protection_status(self.root.title())
         except Exception as e:
-            print(f"恢复主窗口错误: {str(e)}") 
+            print(f"恢复主窗口错误: {str(e)}")
+
+    def apply_anti_capture_properties(self, window):
+        """给窗口应用防截图和防切屏属性"""
+        try:
+            # 防截图设置
+            self.hide_window_from_capture(window)
+            
+            # 防切屏检测
+            self.prevent_switch_detection(window)
+        except Exception as e:
+            print(f"应用防截图和防切屏属性失败: {str(e)}")
+    
+    def hide_window_from_capture(self, window):
+        """防止窗口被截图捕获"""
+        try:
+            # 确保窗口已完全创建并显示在前台
+            window.update_idletasks()
+            window.update()
+            
+            # 强制窗口前置
+            window.lift()
+            window.focus_force()
+            
+            # 延迟一小段时间确保窗口真正显示
+            time.sleep(0.1)
+            
+            # 定义常量
+            WDA_NONE = 0x00000000
+            WDA_EXCLUDEFROMCAPTURE = 0x00000011
+
+            # 获取当前窗口句柄
+            hwnd = win32gui.GetForegroundWindow()
+            
+            # 使用SetWindowDisplayAffinity函数
+            result = windll.user32.SetWindowDisplayAffinity(
+                hwnd,
+                WDA_EXCLUDEFROMCAPTURE
+            )
+
+            if result:
+                print("已成功应用防截图设置")
+            else:
+                error_code = ctypes.GetLastError()
+                print(f"设置失败，错误码: {error_code}")
+                print(f"错误详情: {ctypes.FormatError(error_code)}")
+        except Exception as e:
+            print(f"设置防截图失败: {str(e)}")
+            
+    def prevent_switch_detection(self, window):
+        """防止窗口被检测到切屏"""
+        try:
+            # 确保窗口已创建
+            window.update_idletasks()
+            window.update()
+            
+            # 获取窗口句柄
+            hwnd = win32gui.GetForegroundWindow()
+            
+            # 定义常量
+            WS_EX_TOOLWINDOW = 0x00000080
+            WS_EX_NOACTIVATE = 0x08000000
+            
+            # 修改窗口扩展风格
+            # 添加WS_EX_TOOLWINDOW使窗口不出现在任务栏和Alt+Tab列表中
+            # 添加WS_EX_NOACTIVATE使窗口在点击时不获取焦点
+            style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+            win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
+                                style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
+            
+            # 将窗口设为顶层窗口，确保始终可见
+            win32gui.SetWindowPos(
+                hwnd, 
+                win32con.HWND_TOPMOST, 
+                0, 0, 0, 0, 
+                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+            )
+            
+            print("已应用防切屏检测设置")
+        except Exception as e:
+            print(f"设置防切屏检测失败: {str(e)}")
+
+    def check_window_protection_status(self, window_title=None):
+        """检查指定窗口的防截图状态"""
+        try:
+            # 如果没有提供窗口标题，使用当前前台窗口
+            hwnd = None
+            if window_title:
+                hwnd = win32gui.FindWindow(None, window_title)
+            else:
+                hwnd = win32gui.GetForegroundWindow()
+                window_title = win32gui.GetWindowText(hwnd)
+            
+            if not hwnd:
+                print(f"无法找到窗口: {window_title}")
+                return False
+            
+            # 获取窗口扩展样式
+            style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+            
+            # 检查是否有防切屏属性
+            has_noactivate = bool(style & 0x08000000)  # WS_EX_NOACTIVATE
+            has_toolwindow = bool(style & 0x00000080)  # WS_EX_TOOLWINDOW
+            
+            # 检查是否有防截图属性
+            # 不幸的是，无法直接读取SetWindowDisplayAffinity的状态
+            # 我们只能检查窗口样式
+            
+            print(f"窗口 '{window_title}' 防护状态:")
+            print(f"  - 防切屏 (WS_EX_NOACTIVATE): {'启用' if has_noactivate else '未启用'}")
+            print(f"  - 工具窗口 (WS_EX_TOOLWINDOW): {'启用' if has_toolwindow else '未启用'}")
+            
+            return has_noactivate and has_toolwindow
+        except Exception as e:
+            print(f"检查窗口防护状态失败: {str(e)}")
+            return False 
