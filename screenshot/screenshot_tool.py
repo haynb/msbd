@@ -33,6 +33,8 @@ class ScreenshotTool:
         self.monitor_info = self.get_monitor_info()
         # 初始化mss
         self.sct = mss.mss()
+        # 是否在使用后删除截图文件
+        self.auto_delete = True
         
     def get_monitor_info(self):
         """获取所有显示器的位置和尺寸信息"""
@@ -135,8 +137,8 @@ class ScreenshotTool:
             # 创建全屏透明窗口
             self.screenshot_window = tk.Toplevel()
             
-            # 设置窗口样式
-            self.screenshot_window.attributes("-alpha", 0.2)  # 调整透明度
+            # 设置窗口样式 - 降低透明度，使窗口更容易看见
+            self.screenshot_window.attributes("-alpha", 0.3)  # 调整透明度
             self.screenshot_window.attributes("-topmost", True)
             self.screenshot_window.overrideredirect(True)  # 无边框窗口
             
@@ -175,13 +177,13 @@ class ScreenshotTool:
             # 设置背景为轻微可见
             self.canvas.configure(bg="#F0F0F0", highlightthickness=0)
             
-            # 显示提示文本 - 确保在可见区域显示
+            # 显示提示文本 - 增大字体大小
             self.canvas.create_text(
                 width // 2,
                 height // 2,
                 text="按住鼠标左键并拖动选择区域，松开完成截图\n按ESC取消",
                 fill="black",
-                font=("微软雅黑", 16, "bold"),
+                font=("微软雅黑", 24, "bold"),  # 字体大小从16增加到24
                 tags="help_text"
             )
             
@@ -210,18 +212,18 @@ class ScreenshotTool:
             # 清除提示文本
             self.canvas.delete("help_text")
             
-            # 创建矩形
+            # 创建矩形 - 增加线宽使其更容易看见
             self.rect_id = self.canvas.create_rectangle(
                 self.start_x, self.start_y, self.start_x, self.start_y,
-                outline="red", width=2, tags="rect"
+                outline="red", width=4, tags="rect"  # 线宽从2增加到4
             )
             
-            # 显示鼠标位置提示
+            # 显示鼠标位置提示 - 增大字体
             self.cursor_text_id = self.canvas.create_text(
                 self.start_x + 15, self.start_y - 15,
                 text=f"起点: ({self.start_x}, {self.start_y})",
                 fill="black", 
-                font=("微软雅黑", 9),
+                font=("微软雅黑", 14),  # 字体大小从9增加到14
                 tags="cursor_text"
             )
         except Exception as e:
@@ -244,13 +246,13 @@ class ScreenshotTool:
                 width = abs(self.current_x - self.start_x)
                 height = abs(self.current_y - self.start_y)
                 
-                # 显示鼠标位置和尺寸
+                # 显示鼠标位置和尺寸 - 增大字体
                 text = f"尺寸: {width} x {height} | 当前位置: ({self.current_x}, {self.current_y})"
                 self.cursor_text_id = self.canvas.create_text(
                     self.current_x + 15, self.current_y - 15,
                     text=text,
                     fill="black", 
-                    font=("微软雅黑", 9),
+                    font=("微软雅黑", 14),  # 字体大小从9增加到14
                     tags="cursor_text"
                 )
         except Exception as e:
@@ -352,7 +354,25 @@ class ScreenshotTool:
                     
                     # 调用回调函数
                     if self.callback:
+                        # 传递截图路径给回调函数
                         self.callback(self.screenshot_path)
+                        
+                        # 如果启用自动删除，在回调后删除截图文件
+                        if self.auto_delete:
+                            # 延迟一段时间后删除文件（确保回调函数有足够时间处理文件）
+                            def delayed_delete():
+                                try:
+                                    time.sleep(3)  # 3秒延迟
+                                    if os.path.exists(self.screenshot_path):
+                                        os.remove(self.screenshot_path)
+                                        print(f"已删除截图文件: {self.screenshot_path}")
+                                except Exception as e:
+                                    print(f"删除截图文件失败: {str(e)}")
+                            
+                            # 创建一个新线程来处理文件删除
+                            delete_thread = Thread(target=delayed_delete)
+                            delete_thread.daemon = True
+                            delete_thread.start()
                 except Exception as e:
                     print(f"截图错误: {str(e)}")
                     # 尝试使用PIL的ImageGrab作为备选方案
@@ -364,6 +384,21 @@ class ScreenshotTool:
                         # 调用回调函数
                         if self.callback:
                             self.callback(self.screenshot_path)
+                            
+                            # 自动删除
+                            if self.auto_delete:
+                                def delayed_delete():
+                                    try:
+                                        time.sleep(3)  # 3秒延迟
+                                        if os.path.exists(self.screenshot_path):
+                                            os.remove(self.screenshot_path)
+                                            print(f"已删除截图文件: {self.screenshot_path}")
+                                    except Exception as e:
+                                        print(f"删除截图文件失败: {str(e)}")
+                                
+                                delete_thread = Thread(target=delayed_delete)
+                                delete_thread.daemon = True
+                                delete_thread.start()
                     except Exception as e2:
                         print(f"备选截图也失败: {str(e2)}")
         except Exception as e:
