@@ -227,7 +227,7 @@ class ScreenshotTool:
             self.screenshot_window.geometry(geometry)
             
             # 创建画布
-            self.canvas = tk.Canvas(self.screenshot_window, cursor="cross")
+            self.canvas = tk.Canvas(self.screenshot_window)
             self.canvas.pack(fill=tk.BOTH, expand=True)
             
             # 设置鼠标事件
