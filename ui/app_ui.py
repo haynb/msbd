@@ -56,16 +56,16 @@ class InterviewAssistantUI:
         
         # 配置各种样式
         self.style.configure("TFrame", background=bg_color)
-        self.style.configure("TButton", font=("微软雅黑", 10), background=accent_color)
-        self.style.configure("TLabel", font=("微软雅黑", 10), background=bg_color, foreground=text_color)
+        self.style.configure("TButton", font=("微软雅黑", 12), background=accent_color)
+        self.style.configure("TLabel", font=("微软雅黑", 12), background=bg_color, foreground=text_color)
         self.style.configure("TLabelframe", background=bg_color, foreground=text_color)
-        self.style.configure("TLabelframe.Label", font=("微软雅黑", 10, "bold"), background=bg_color, foreground=text_color)
-        self.style.configure("TRadiobutton", background=bg_color, foreground=text_color)
+        self.style.configure("TLabelframe.Label", font=("微软雅黑", 12, "bold"), background=bg_color, foreground=text_color)
+        self.style.configure("TRadiobutton", font=("微软雅黑", 12), background=bg_color, foreground=text_color)
         
         # 创建自定义按钮样式
-        self.style.configure("Record.TButton", font=("微软雅黑", 10, "bold"), background="#28a745")
-        self.style.configure("Stop.TButton", font=("微软雅黑", 10, "bold"), background="#dc3545")
-        self.style.configure("Clear.TButton", font=("微软雅黑", 10), background="#6c757d")
+        self.style.configure("Record.TButton", font=("微软雅黑", 12, "bold"), background="#28a745")
+        self.style.configure("Stop.TButton", font=("微软雅黑", 12, "bold"), background="#dc3545")
+        self.style.configure("Clear.TButton", font=("微软雅黑", 12), background="#6c757d")
         
     def create_widgets(self):
         # 创建主框架
@@ -77,11 +77,11 @@ class InterviewAssistantUI:
         header_frame.pack(fill=tk.X, pady=(0, 10))
         
         # 标题
-        title_label = ttk.Label(header_frame, text="面试助手", font=("微软雅黑", 16, "bold"))
+        title_label = ttk.Label(header_frame, text="面试助手", font=("微软雅黑", 20, "bold"))
         title_label.pack(pady=(0, 5))
         
         # 说明
-        description_label = ttk.Label(header_frame, text="帮助您回答面试问题的AI助手", font=("微软雅黑", 10))
+        description_label = ttk.Label(header_frame, text="帮助您回答面试问题的AI助手", font=("微软雅黑", 12))
         description_label.pack(pady=(0, 10))
         
         # 设置区域 - 面试类型选择和模型选择
@@ -135,14 +135,14 @@ class InterviewAssistantUI:
         left_frame = ttk.LabelFrame(paned_window, text="语音识别结果")
         paned_window.add(left_frame, weight=1)
         
-        self.recognition_text = scrolledtext.ScrolledText(left_frame, wrap=tk.WORD, height=10, font=("微软雅黑", 10))
+        self.recognition_text = scrolledtext.ScrolledText(left_frame, wrap=tk.WORD, height=10, font=("微软雅黑", 12))
         self.recognition_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # 右侧 - AI回答
         right_frame = ttk.LabelFrame(paned_window, text="AI回答")
         paned_window.add(right_frame, weight=1)
         
-        self.ai_response_text = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, height=10, font=("微软雅黑", 10))
+        self.ai_response_text = scrolledtext.ScrolledText(right_frame, wrap=tk.WORD, height=10, font=("微软雅黑", 12))
         self.ai_response_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # 在截图标签页中添加内容
@@ -156,7 +156,7 @@ class InterviewAssistantUI:
         self.screenshot_frame = ttk.Frame(screenshot_left_frame)
         self.screenshot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        self.screenshot_label = ttk.Label(self.screenshot_frame, text="点击下方按钮进行截图")
+        self.screenshot_label = ttk.Label(self.screenshot_frame, text="点击下方按钮进行截图", font=("微软雅黑", 12))
         self.screenshot_label.pack(fill=tk.BOTH, expand=True)
         
         screenshot_button_frame = ttk.Frame(screenshot_left_frame)
@@ -178,7 +178,7 @@ class InterviewAssistantUI:
             screenshot_right_frame, 
             wrap=tk.WORD, 
             height=10, 
-            font=("微软雅黑", 10)
+            font=("微软雅黑", 12)
         )
         self.screenshot_result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
@@ -194,7 +194,7 @@ class InterviewAssistantUI:
         status_label = ttk.Label(status_frame, text="状态:")
         status_label.pack(side=tk.LEFT)
         
-        self.status_display = ttk.Label(status_frame, textvariable=self.status_var, font=("微软雅黑", 10, "bold"))
+        self.status_display = ttk.Label(status_frame, textvariable=self.status_var, font=("微软雅黑", 12, "bold"))
         self.status_display.pack(side=tk.LEFT, padx=5)
         
         # 按钮区域
