@@ -129,6 +129,61 @@ class ScreenshotTool:
         # 创建全屏透明窗口进行截图
         self.create_screenshot_window()
     
+    def create_protected_toplevel(self, title="受保护窗口"):
+        """创建一个已应用防截图和防切屏属性的Toplevel窗口"""
+        try:
+            # 创建但不显示
+            window = tk.Toplevel()
+            window.withdraw()  # 关键点：先隐藏窗口
+            window.title(title)
+            
+            # 更新窗口以确保创建
+            window.update_idletasks()
+            
+            # 防截图设置 - 直接针对句柄操作
+            hwnd = None
+            # 尝试通过标题查找窗口
+            if title:
+                hwnd = win32gui.FindWindow(None, title)
+            
+            if hwnd:
+                # 定义常量
+                WDA_EXCLUDEFROMCAPTURE = 0x00000011
+                
+                # 使用SetWindowDisplayAffinity函数
+                result = windll.user32.SetWindowDisplayAffinity(
+                    hwnd,
+                    WDA_EXCLUDEFROMCAPTURE
+                )
+
+                if result:
+                    print(f"已对窗口 '{title}' 预先应用防截图设置")
+                else:
+                    error_code = ctypes.GetLastError()
+                    print(f"预先设置防截图失败，错误码: {error_code}")
+                
+                # 防切屏检测
+                WS_EX_TOOLWINDOW = 0x00000080
+                WS_EX_NOACTIVATE = 0x08000000
+                
+                style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+                win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, 
+                                    style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
+                
+                win32gui.SetWindowPos(
+                    hwnd, 
+                    win32con.HWND_TOPMOST, 
+                    0, 0, 0, 0, 
+                    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+                )
+                
+                print(f"已对窗口 '{title}' 预先应用防切屏检测设置")
+            
+            return window
+        except Exception as e:
+            print(f"创建受保护窗口失败: {str(e)}")
+            return None
+    
     def create_screenshot_window(self):
         """创建截图窗口"""
         try:
@@ -142,12 +197,16 @@ class ScreenshotTool:
             global_area = self.monitor_info[-1]
             primary_area = self.monitor_info[0]
             
-            # 创建全屏透明窗口
-            self.screenshot_window = tk.Toplevel()
+            # 使用防护创建函数创建窗口（保持隐藏状态）
+            self.screenshot_window = self.create_protected_toplevel("截图")
+            if not self.screenshot_window:
+                # 如果创建失败，尝试普通创建方式
+                print("使用预先防护创建函数失败，尝试常规方法...")
+                self.screenshot_window = tk.Toplevel()
+                self.screenshot_window.withdraw()  # 依然先隐藏
+                self.screenshot_window.title("截图")
             
-            # 设置窗口样式 - 降低透明度，使窗口更容易看见
-            self.screenshot_window.attributes("-alpha", 0.3)  # 调整透明度
-            self.screenshot_window.attributes("-topmost", True)
+            # 设置窗口基本属性
             self.screenshot_window.overrideredirect(True)  # 无边框窗口
             
             # 使用系统API获取的虚拟屏幕尺寸和位置
@@ -162,13 +221,10 @@ class ScreenshotTool:
             if height < global_area['height']:
                 height = global_area['height']
             
-            # 设置窗口位置和大小覆盖所有屏幕
+            # 设置窗口位置和大小覆盖所有屏幕（仍保持隐藏）
             geometry = f"{width}x{height}+{left}+{top}"
             print(f"窗口几何参数: {geometry}")
             self.screenshot_window.geometry(geometry)
-            
-            # 设置窗口标题
-            self.screenshot_window.title("截图")
             
             # 创建画布
             self.canvas = tk.Canvas(self.screenshot_window, cursor="cross")
@@ -195,15 +251,46 @@ class ScreenshotTool:
                 tags="help_text"
             )
             
-            # 确保窗口显示并更新
-            self.screenshot_window.update_idletasks()
-            self.screenshot_window.update()
+            # 再次确保防护属性已应用
+            # 使用更强大的方法直接获取窗口句柄
+            hwnd = win32gui.FindWindow(None, "截图")
+            if not hwnd:
+                # 如果找不到，尝试获取当前前台窗口
+                self.screenshot_window.update_idletasks()
+                hwnd = win32gui.GetForegroundWindow()
+            
+            if hwnd:
+                # 定义常量
+                WDA_EXCLUDEFROMCAPTURE = 0x00000011
+                
+                # 直接应用防截图设置
+                result = windll.user32.SetWindowDisplayAffinity(
+                    hwnd,
+                    WDA_EXCLUDEFROMCAPTURE
+                )
+                
+                if result:
+                    print("已为截图窗口强制应用防截图设置")
+                else:
+                    error_code = ctypes.GetLastError()
+                    print(f"强制设置防截图失败，错误码: {error_code}")
+            
+            # 最后设置透明度并显示窗口
+            self.screenshot_window.attributes("-alpha", 0.3)
+            self.screenshot_window.attributes("-topmost", True)
+            
+            # 显示窗口
+            self.screenshot_window.deiconify()
             
             # 强制窗口前置
             self.screenshot_window.lift()
             self.screenshot_window.focus_force()
             
-            # 手动添加防截图属性
+            # 确保窗口显示并更新
+            self.screenshot_window.update_idletasks()
+            self.screenshot_window.update()
+            
+            # 手动添加防截图属性 - 作为最后的保障
             self.apply_anti_capture_properties(self.screenshot_window)
             
             # 检查防护状态
@@ -505,8 +592,14 @@ class ScreenshotTool:
             WDA_NONE = 0x00000000
             WDA_EXCLUDEFROMCAPTURE = 0x00000011
 
-            # 获取当前窗口句柄
-            hwnd = win32gui.GetForegroundWindow()
+            # 获取窗口句柄 - 先尝试通过标题获取
+            hwnd = None
+            if hasattr(window, 'title'):
+                hwnd = win32gui.FindWindow(None, window.title())
+            
+            # 如果找不到，使用前台窗口
+            if not hwnd:
+                hwnd = win32gui.GetForegroundWindow()
             
             # 使用SetWindowDisplayAffinity函数
             result = windll.user32.SetWindowDisplayAffinity(
