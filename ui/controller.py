@@ -93,8 +93,18 @@ class InterviewAssistantController:
                 # 如果没有，尝试使用OpenAI初始化
                 self.image_recognition_client = LLMFactory.create_image_recognition_client("openai")
             
+            # 获取面试类型
+            interview_type = ""
+            if self.llm_client and hasattr(self.llm_client, "interview_type"):
+                interview_type = self.llm_client.interview_type
+            else:
+                # 从UI获取面试类型
+                interview_type = self.ui.interview_type_var.get()
+                if interview_type == "例如：Java后端开发工程师":
+                    interview_type = ""
+            
             # 调用图像识别客户端分析图像
-            prompt = "请详细分析这张图片中的内容，描述图片中的元素并解释图片的含义。如果图片包含代码或文本，请将其提取出来。"
+            prompt = "你是一个面试助手，给你一个面试过程中遇到的难题，请你解答。用户面试的岗位是：" + interview_type
             result = self.image_recognition_client.analyze_image(screenshot_path, prompt)
             
             # 将结果发送到UI
