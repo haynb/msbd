@@ -4,6 +4,7 @@ from .openai_chat_manager import OpenAIChatManager
 from typing import Dict, Any, Callable
 from tenacity import retry, stop_after_attempt, wait_fixed
 import os
+import base64
 class OpenAIClient(LLMBase):
     """OpenAI LLM客户端"""
 
@@ -122,3 +123,44 @@ class OpenAIClient(LLMBase):
         
         return response_generator()
         pass
+
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+    def analyze_image(self, image_path: str, prompt: str = None):
+        """分析图像内容并返回结果
+        
+        Args:
+            image_path: 图像文件路径
+            prompt: 可选的提示文本，用于引导AI分析图像
+            
+        Returns:
+            分析结果字符串
+        """
+        try:
+            # 读取图像文件
+            with open(image_path, "rb") as image_file:
+                image_data = image_file.read()
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+            
+            # 准备消息内容
+            if not prompt:
+                prompt = "请详细分析这张图片中的内容。"
+            
+            # 创建带有图像的消息
+            messages = [
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                ]}
+            ]
+            
+            # 调用API
+            response = self.client.chat.completions.create(
+                model="gpt-4o",  # 使用支持视觉的模型
+                messages=messages,
+                max_tokens=1000
+            )
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"分析图像时发生错误: {str(e)}")
+            return f"图像分析失败: {str(e)}"

@@ -32,6 +32,19 @@ class LLMBase(ABC):
         """执行指定已注册的函数"""
         pass
 
+    @abstractmethod
+    def analyze_image(self, image_path: str, prompt: str = None):
+        """分析图像内容并返回结果
+        
+        Args:
+            image_path: 图像文件路径
+            prompt: 可选的提示文本，用于引导AI分析图像
+            
+        Returns:
+            分析结果
+        """
+        pass
+
 
 @dataclass
 class ChatMessage:
