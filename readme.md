@@ -34,3 +34,20 @@ deepseek：https://www.deepseek.com/
 ## 3、运行程序
 
 这里会自动创建配置文件，关闭程序后使用上述参数填充补全配置文件即可(在config/config.json中)。
+
+
+
+
+
+## 重大更新！！！！！
+
+新增gui界面：
+
+![0](https://github.com/haynb/msbd/blob/d20c81f8a697b966549af22a21c205b9e19a6226/imgs/0.jpg)
+
+新增防屏幕分享、防录屏、防截图、防切屏检测功能！！！！
+
+妈妈再也不用担心我作弊被发现啦！！
+
+新增截图解题功能！！！力扣直接秒，ai帮你答：
+![1](https://github.com/haynb/msbd/blob/d20c81f8a697b966549af22a21c205b9e19a6226/imgs/1.jpg)
