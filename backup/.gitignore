@@ -1,0 +1,11 @@
+.vscode/
+*.wav
+
+__pycache__/
+config/settings.yaml
+
+tests/
+token_info.json
+dist/
+build/
+main.spec
