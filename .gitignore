@@ -9,3 +9,4 @@ token_info.json
 dist/
 build/
 main.spec
+/.spec*
