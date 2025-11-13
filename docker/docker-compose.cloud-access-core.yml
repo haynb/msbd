@@ -40,9 +40,9 @@ services:
     environment:
       CLOUD_ACCESS_CONFIG: /app/configs/config.example.yaml
     ports:
-      - "8080:8080"
-      - "9090:9090"
-      - "9091:9091"
+      - "${CLOUD_ACCESS_HOST_HTTP_PORT:-8080}:8080"
+      - "${CLOUD_ACCESS_HOST_PROM_PORT:-9090}:9090"
+      - "${CLOUD_ACCESS_HOST_GRPC_PORT:-9091}:9091"
     volumes:
       - ../configs:/app/configs:ro
       - telemetry_buffer:/app/data
