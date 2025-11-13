@@ -11,7 +11,6 @@ RUN CGO_ENABLED=0 GOEXPERIMENT=arenas GOOS=linux GOARCH=amd64 go build -trimpath
 FROM gcr.io/distroless/base-debian12:nonroot
 WORKDIR /app
 COPY --from=builder /workspace/bin/cloud-access-core /app/cloud-access-core
-COPY --from=builder /workspace/configs /app/configs
 USER nonroot:nonroot
 EXPOSE 8080 9090 9091
 ENTRYPOINT ["/app/cloud-access-core"]
