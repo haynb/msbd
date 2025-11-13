@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG GO_VERSION=1.22
+ARG GO_VERSION=1.24.6
 FROM golang:${GO_VERSION}-bookworm AS builder
 WORKDIR /workspace
 COPY go.mod go.sum ./
