@@ -1,0 +1,25 @@
+[package]
+name = "guardian-host"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = { workspace = true }
+audio = { path = "../audio" }
+napi = { workspace = true }
+napi-derive = { workspace = true }
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+guardian-net = { path = "../net" }
+guardian = { path = "../guardian" }
+screenshot = { path = "../screenshot" }
+guardian-storage = { path = "../storage" }
+diagnostics = { path = "../diagnostics" }
+base64 = "0.22"

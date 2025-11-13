@@ -1,0 +1,43 @@
+name: desktop-guardian-client
+
+on:
+  push:
+    paths:
+      - "clients/desktop-guardian-client/**"
+      - ".github/workflows/desktop-guardian-client.yml"
+  pull_request:
+    paths:
+      - "clients/desktop-guardian-client/**"
+      - ".github/workflows/desktop-guardian-client.yml"
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/desktop-guardian-client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: clients/desktop-guardian-client/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests
+        run: pnpm test
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Native tests
+        run: pnpm native:test
+      - name: Renderer smoke (e2e)
+        run: pnpm e2e

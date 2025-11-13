@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@guardian/config": ["packages/guardian-config/src/index.ts"],
+      "@guardian/config-store": ["packages/config-store/src/index.ts"],
+      "@guardian/network-client": ["packages/network-client/src/index.ts"],
+      "@guardian/network-client/realtime": ["packages/network-client/src/realtime.ts"],
+      "@guardian/ipc": ["packages/ipc/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+version: v1
+routes:
+  - name: policy-admin
+    description: Admin access to policy APIs via gateway
+    methods: ["GET", "POST", "PUT"]
+    path: /api/policy/*
+    strip_path_prefix: /api
+    upstream:
+      url: http://127.0.0.1:8080
+      timeout_seconds: 15
+    auth:
+      token_format: jwt
+      action: policy.manage
+      resource: /policies
+    rate_limit:
+      capacity: 120
+      refill_per_second: 60
+      window_seconds: 60
+      per_tenant: true
+  - name: auth-public
+    description: Allow anonymous access to auth endpoints
+    methods: ["POST"]
+    path: /api/auth/*
+    strip_path_prefix: ""
+    upstream:
+      url: http://127.0.0.1:8080
+      timeout_seconds: 15
+    auth:
+      allow_anonymous: true

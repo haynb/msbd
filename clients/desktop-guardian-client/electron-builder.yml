@@ -1,0 +1,27 @@
+appId: com.msbd.desktop.guardian
+productName: Desktop Guardian
+directories:
+  output: dist/release
+files:
+  - electron/dist/**
+  - renderer/dist/**
+  - packages/**
+  - configs/**
+  - package.json
+asar: true
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+  publish:
+    - provider: generic
+      url: ${GUARDIAN_UPDATE_FEED:-https://updates.example.com/desktop}
+win:
+  target:
+    - squirrel
+  publish:
+    - provider: generic
+      url: ${GUARDIAN_UPDATE_FEED:-https://updates.example.com/desktop}
+linux:
+  target:
+    - AppImage

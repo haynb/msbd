@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package iam.v1;
+
+option go_package = "github.com/hayhandsome/msbd/services/cloud-access-core/proto/iam;iam";
+
+service DeviceService {
+  rpc RequestPairing(DevicePairingRequest) returns (DevicePairingResponse);
+  rpc ApprovePairing(ApprovePairingRequest) returns (ApprovePairingResponse);
+  rpc ClaimPairing(ClaimPairingRequest) returns (ClaimPairingResponse);
+  rpc SendHeartbeat(DeviceHeartbeatRequest) returns (DeviceHeartbeatResponse);
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
+}
+
+message DevicePairingRequest {
+  string platform = 1;
+  string fingerprint = 2;
+  string client_version = 3;
+  string display_name = 4;
+  map<string, string> metadata = 5;
+}
+
+message DevicePairingResponse {
+  string code = 1;
+  string token = 2;
+  int64 expires_in = 3;
+}
+
+message ApprovePairingRequest {
+  string code = 1;
+  string profile_name = 2;
+  int32 trust_score = 3;
+}
+
+message ApprovePairingResponse {
+  string device_id = 1;
+  string status = 2;
+  int32 config_version = 3;
+}
+
+message ClaimPairingRequest {
+  string code = 1;
+  string token = 2;
+}
+
+message ClaimPairingResponse {
+  string device_id = 1;
+  string encrypted_profile = 2;
+  int32 config_version = 3;
+}
+
+message DeviceHeartbeatRequest {
+  string device_id = 1;
+  string status = 2;
+  map<string, string> metrics = 3;
+}
+
+message DeviceHeartbeatResponse {
+  bool accepted = 1;
+}
+
+message RevokeDeviceRequest {
+  string device_id = 1;
+  string reason = 2;
+}
+
+message RevokeDeviceResponse {
+  bool revoked = 1;
+}

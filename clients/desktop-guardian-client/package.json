@@ -1,0 +1,27 @@
+{
+  "name": "desktop-guardian-client-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace for the desktop guardian Electron client",
+  "scripts": {
+    "dev": "run-p dev:renderer dev:electron",
+    "dev:renderer": "corepack pnpm --filter desktop-guardian-client-renderer dev",
+    "dev:electron": "corepack pnpm --filter desktop-guardian-client-electron dev",
+    "build": "corepack pnpm -r --workspace-root=false run build",
+    "lint": "corepack pnpm -r --workspace-root=false run lint",
+    "test": "corepack pnpm -r --workspace-root=false run test",
+    "typecheck": "corepack pnpm -r --workspace-root=false run typecheck",
+    "native:build": "cd native && cargo build -p guardian-host",
+    "native:test": "cd native && cargo test -p audio -p guardian -p screenshot",
+    "native:test:all": "cd native && cargo test",
+    "check": "corepack pnpm lint && corepack pnpm test && corepack pnpm typecheck",
+    "e2e": "corepack pnpm --filter desktop-guardian-client-renderer exec vitest run src/e2e/appSmoke.test.tsx",
+    "package:desktop": "bash scripts/build-desktop.sh"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0",
+    "zod": "^3.23.8"
+  }
+}

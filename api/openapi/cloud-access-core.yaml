@@ -1,0 +1,874 @@
+openapi: 3.1.0
+info:
+  title: Cloud Access Core API
+  version: 0.9.0
+  description: |
+    REST surface for IAM, device onboarding, policy, and config center modules inside
+    the 面试宝典 cloud-access-core service. JWT-protected admin endpoints use the IAM-issued
+    access token; device endpoints use the device PASETO token. Deterministic error codes follow
+    the scheme documented in docs/cloud-access-core-operations.md.
+servers:
+  - url: http://localhost:8080
+    description: Default developer runtime (Makefile/Compose)
+components:
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    DeviceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: PASETO v4
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "40101"
+        message:
+          type: string
+        request_id:
+          type: string
+          nullable: true
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, refresh_expires_in, session_id, token_type]
+      properties:
+        access_token:
+          type: string
+        device_token:
+          type: string
+          description: Device-scoped PASETO token (missing for browser clients)
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        refresh_expires_in:
+          type: integer
+        session_id:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        client_kind:
+          type: string
+          description: web|desktop|api – influences token mix (JWT vs PASETO)
+        device_fingerprint:
+          type: string
+          description: Optional identifier tied to the workstation
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    PairingRequest:
+      type: object
+      required: [platform, fingerprint]
+      properties:
+        platform:
+          type: string
+          example: windows
+        fingerprint:
+          type: string
+        client_version:
+          type: string
+        display_name:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    PairingApprove:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+        profile_name:
+          type: string
+          default: default
+        trust_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+    PairingClaim:
+      type: object
+      required: [code, token]
+      properties:
+        code:
+          type: string
+        token:
+          type: string
+    Heartbeat:
+      type: object
+      required: [device_id, status]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [healthy, degraded, suspect]
+        metrics:
+          type: object
+          additionalProperties: true
+    RevokeDevice:
+      type: object
+      required: [device_id]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+    PolicyRule:
+      type: object
+      required: [action, resource, effect]
+      properties:
+        action:
+          type: string
+        resource:
+          type: string
+        effect:
+          type: string
+          enum: [allow, deny]
+        roles:
+          type: array
+          items:
+            type: string
+        conditions:
+          type: object
+          additionalProperties: true
+    PolicySet:
+      type: object
+      required: [tenant_id, rules]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyRule'
+    CheckAccessRequest:
+      type: object
+      required: [tenant_id, action, resource]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            type: string
+        action:
+          type: string
+        resource:
+          type: string
+    CheckAccessResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+    QuotaRequest:
+      type: object
+      required: [user_id, resource, amount]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            type: string
+        resource:
+          type: string
+        amount:
+          type: integer
+    QuotaResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        remaining:
+          type: integer
+        reset_at:
+          type: string
+          format: date-time
+    GroupRequest:
+      type: object
+      required: [tenant_id, name]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        speech_quota:
+          type: integer
+        llm_quota:
+          type: integer
+        screenshot_quota:
+          type: integer
+        updated_by:
+          type: string
+          format: uuid
+        overdraft_policy:
+          type: object
+          additionalProperties: true
+    TenantRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        tier:
+          type: string
+    ConfigProfileUpsert:
+      type: object
+      required: [tenant_id, profile_name, sampling_rate, noise_gate]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        profile_name:
+          type: string
+        sampling_rate:
+          type: integer
+        noise_gate:
+          type: number
+        detection:
+          type: object
+          additionalProperties: true
+        model_presets:
+          type: object
+          additionalProperties: true
+        endpoints:
+          type: object
+          additionalProperties: true
+    ConfigProfileResponse:
+      type: object
+      properties:
+        profile_name:
+          type: string
+        version:
+          type: integer
+        signature:
+          type: string
+        sampling_rate:
+          type: integer
+        noise_gate:
+          type: number
+        detection:
+          type: object
+          additionalProperties: true
+        model_presets:
+          type: object
+          additionalProperties: true
+        endpoints:
+          type: object
+          additionalProperties: true
+        encrypted_profile:
+          type: string
+          description: Base64 AES-GCM payload (device fetch only)
+    GuardianEventRequest:
+      type: object
+      required: [detector, kind, occurredAt]
+      properties:
+        detector:
+          type: string
+          description: Logical detector identifier (process, vm, focus)
+        kind:
+          type: string
+          description: Specific indicator such as obs64.exe or focus_spike
+        processName:
+          type: string
+          nullable: true
+        details:
+          type: object
+          additionalProperties: true
+        actions:
+          type: array
+          items:
+            type: string
+        occurredAt:
+          type: string
+          format: date-time
+    GuardianScreenshotTicket:
+      type: object
+      required: [artifactId, uploadUrl]
+      properties:
+        artifactId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          format: uri
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+    GuardianScreenshotConfirm:
+      type: object
+      required: [artifactId, keyId, iv, mac, bytes, trigger]
+      properties:
+        artifactId:
+          type: string
+          format: uuid
+        keyId:
+          type: string
+        iv:
+          type: string
+          description: Base64 encoded IV
+        mac:
+          type: string
+          description: Base64 encoded auth tag
+        bytes:
+          type: integer
+        trigger:
+          type: string
+          description: capture reason such as detection/hotkey/interval
+    DiagnosticsMetrics:
+      type: object
+      required: [cpuPercent, memoryTotal, memoryUsed, jitterMs, droppedChunks, guardianEvents, audioRunning, sampleRate, chunkMillis]
+      properties:
+        cpuPercent:
+          type: number
+        memoryTotal:
+          type: integer
+        memoryUsed:
+          type: integer
+        jitterMs:
+          type: number
+        droppedChunks:
+          type: integer
+        guardianEvents:
+          type: integer
+        audioRunning:
+          type: boolean
+        sampleRate:
+          type: integer
+        chunkMillis:
+          type: integer
+    DiagnosticsPayload:
+      type: object
+      required: [trigger, collectedAt, version, platform, metrics]
+      properties:
+        trigger:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+        deviceId:
+          type: string
+        sessionId:
+          type: string
+        version:
+          type: string
+        platform:
+          type: string
+        metrics:
+          $ref: '#/components/schemas/DiagnosticsMetrics'
+paths:
+  /auth/login:
+    post:
+      summary: Login with email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT + refresh (and optional device token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh:
+    post:
+      summary: Exchange a refresh token for a fresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Fresh token bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+  /auth/logout:
+    post:
+      summary: Revoke a refresh token + active session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Refresh token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked:
+                    type: boolean
+  /devices/pairing/request:
+    post:
+      summary: Start device pairing (anonymous client)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingRequest'
+      responses:
+        '200':
+          description: Pairing code issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  token:
+                    type: string
+                  expires_in:
+                    type: integer
+  /devices/pairing/approve:
+    post:
+      summary: Approve a device pairing request
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingApprove'
+      responses:
+        '200':
+          description: Device approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  status:
+                    type: string
+                  config_version:
+                    type: integer
+  /devices/pairing/claim:
+    post:
+      summary: Device claims approved pairing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingClaim'
+      responses:
+        '200':
+          description: Encrypted profile bundle
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  config_version:
+                    type: integer
+                  encrypted_profile:
+                    type: string
+  /devices/heartbeat:
+    post:
+      summary: Report device heartbeat + metrics
+      security:
+        - DeviceToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Heartbeat'
+      responses:
+        '202':
+          description: Accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+  /devices/revoke:
+    post:
+      summary: Revoke a device session
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeDevice'
+      responses:
+        '200':
+          description: Device revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked:
+                    type: boolean
+  /policies:
+    get:
+      summary: List tenant policy rules
+      security:
+        - BearerToken: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Policy rules for the tenant
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PolicyRule'
+    put:
+      summary: Replace tenant policy rules
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicySet'
+      responses:
+        '200':
+          description: Updated rule set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PolicyRule'
+  /policies/check:
+    post:
+      summary: Evaluate RBAC decision
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckAccessRequest'
+      responses:
+        '200':
+          description: Decision payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckAccessResponse'
+  /policies/evaluate:
+    post:
+      summary: Evaluate quota bucket and optionally deduct tokens
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaRequest'
+      responses:
+        '200':
+          description: Quota evaluation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaResponse'
+  /groups:
+    post:
+      summary: Upsert a tenant group definition
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+      responses:
+        '200':
+          description: Persisted group model
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /tenants:
+    post:
+      summary: Create a new tenant
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantRequest'
+      responses:
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /configs/profile:
+    get:
+      summary: Device fetches encrypted config bundle
+      security:
+        - DeviceToken: []
+      parameters:
+        - in: query
+          required: true
+          name: device_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          required: false
+          name: profile
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Encrypted config profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigProfileResponse'
+  /configs/profiles:
+    get:
+      summary: Admin view of profile definition
+      security:
+        - BearerToken: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: profile
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigProfileResponse'
+    put:
+      summary: Upsert profile definition (admin only)
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigProfileUpsert'
+      responses:
+        '200':
+          description: Profile saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigProfileResponse'
+  /configs/stream:
+    get:
+      summary: WebSocket stream for config updates
+      description: |
+        Upgrades to a WebSocket that emits `config.update` events whenever a profile version changes.
+        Clients must present a valid JWT (admin dashboards) or device PASETO (agents) via the `Authorization` header.
+      responses:
+        '101':
+          description: WebSocket upgrade
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/guardian/events:
+    post:
+      summary: Submit guardian mitigation event
+      tags: [guardian]
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardianEventRequest'
+      responses:
+        '202':
+          description: Event accepted
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/guardian/screenshots/request:
+    post:
+      summary: Request signed screenshot upload ticket
+      tags: [guardian]
+      security:
+        - BearerToken: []
+      responses:
+        '200':
+          description: Ticket generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardianScreenshotTicket'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/guardian/screenshots/confirm:
+    post:
+      summary: Confirm encrypted screenshot upload
+      tags: [guardian]
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardianScreenshotConfirm'
+      responses:
+        '204':
+          description: Artifact recorded
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/diagnostics:
+    post:
+      summary: Upload anonymized desktop diagnostics
+      tags: [guardian]
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticsPayload'
+      responses:
+        '202':
+          description: Diagnostics bundle accepted
+        '400':
+          description: Invalid diagnostics payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package realtime.v1;
+
+option go_package = "github.com/hayhandsome/msbd/services/realtime-interview-core/proto/realtime/v1;realtimev1";
+
+message CreateSessionRequest {
+  string mode = 1;
+  string request_key = 2;
+  string device_id = 3;
+  map<string, string> metadata = 4;
+  repeated ParticipantInput participants = 5;
+}
+
+message ParticipantInput {
+  string user_id = 1;
+  string role = 2;
+}
+
+message SessionRecord {
+  string id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  string state = 4;
+  string mode = 5;
+  string request_key = 6;
+  map<string, string> metadata = 7;
+  string started_at = 8;
+  string updated_at = 9;
+  string ended_at = 10;
+  string last_heartbeat = 11;
+}
+
+message SessionRequest {
+  string session_id = 1;
+}
+
+message TransitionSessionRequest {
+  string session_id = 1;
+  string next_state = 2;
+  map<string, string> metadata_patch = 3;
+}
+
+message ParticipantsRequest {
+  string session_id = 1;
+}
+
+message ParticipantRecord {
+  string id = 1;
+  string session_id = 2;
+  string user_id = 3;
+  string role = 4;
+  string joined_at = 5;
+  string left_at = 6;
+}
+
+message ParticipantsResponse {
+  repeated ParticipantRecord participants = 1;
+}
+
+service ControlService {
+  rpc CreateSession (CreateSessionRequest) returns (SessionRecord);
+  rpc GetSession (SessionRequest) returns (SessionRecord);
+  rpc TransitionSession (TransitionSessionRequest) returns (SessionRecord);
+  rpc ListParticipants (ParticipantsRequest) returns (ParticipantsResponse);
+}

@@ -1,0 +1,25 @@
+{
+  "cloudAccess": {
+    "baseUrl": "https://cloud-access-core.local",
+    "authUrl": "https://cloud-access-core.local/auth/login",
+    "callbackUrl": "guardian://auth/callback"
+  },
+  "realtime": {
+    "controlAddress": "dns:///127.0.0.1:9084",
+    "provider": "aliyun",
+    "useTls": false,
+    "chunkMillis": 20
+  },
+  "tray": {
+    "diagnosticsUrl": "https://cloud-access-core.local/api/diagnostics"
+  },
+  "guardian": {
+    "policiesPath": "../configs/policies.example.json"
+  },
+  "updates": {
+    "enabled": true,
+    "channel": "stable",
+    "feedUrl": "https://updates.example.com/desktop",
+    "autoCheckMinutes": 60
+  }
+}

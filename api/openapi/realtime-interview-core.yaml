@@ -1,0 +1,364 @@
+openapi: 3.1.0
+info:
+  title: Realtime Interview Core API
+  version: 0.1.0
+  description: |
+    REST control surface for realtime-interview-core. Endpoints are JWT-protected via
+    cloud-access-core. WebSockets share the same Authorization header and expose
+    transcripts, orchestrator outputs, and session events in near-real-time.
+servers:
+  - url: http://localhost:8084
+    description: Default developer runtime
+components:
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: "40101"
+        message:
+          type: string
+        request_id:
+          type: string
+          nullable: true
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          example: active
+        mode:
+          type: string
+          example: interview
+        request_key:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        started_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_heartbeat:
+          type: string
+          format: date-time
+    CreateSessionRequest:
+      type: object
+      required: [mode, request_key]
+      properties:
+        mode:
+          type: string
+          example: interview
+        request_key:
+          type: string
+          description: Idempotency key enforced by the repository
+        device_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+          additionalProperties: true
+        participants:
+          type: array
+          items:
+            type: object
+            required: [user_id, role]
+            properties:
+              user_id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                example: interviewer
+    TransitionRequest:
+      type: object
+      required: [next_state]
+      properties:
+        next_state:
+          type: string
+          example: paused
+        metadata_patch:
+          type: object
+          additionalProperties: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+    ParticipantsResponse:
+      type: object
+      properties:
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              session_id:
+                type: string
+                format: uuid
+              user_id:
+                type: string
+                format: uuid
+              role:
+                type: string
+              joined_at:
+                type: string
+                format: date-time
+    ProviderStatus:
+      type: object
+      properties:
+        gateway:
+          type: object
+          properties:
+            default_provider:
+              type: string
+              example: aliyun
+            providers:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  default:
+                    type: boolean
+            circuit_open:
+              type: boolean
+            failure_count:
+              type: integer
+            reset_at:
+              type: string
+              format: date-time
+    ProviderRuntimeConfig:
+      type: object
+      properties:
+        default_provider:
+          type: string
+          example: aliyun
+        aliyun:
+          $ref: '#/components/schemas/AliyunRuntimeConfig'
+    AliyunRuntimeConfig:
+      type: object
+      properties:
+        api_url:
+          type: string
+        domain:
+          type: string
+        app_key:
+          type: string
+        token:
+          type: string
+        token_url:
+          type: string
+        format:
+          type: string
+        sample_rate:
+          type: integer
+        enable_intermediate_result:
+          type: boolean
+        enable_itn:
+          type: boolean
+        enable_punctuation:
+          type: boolean
+        enable_voice_detection:
+          type: boolean
+  responses:
+    BadRequest:
+      description: Invalid payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing/invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Invalid transition / session already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Session not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Caller lacks required role
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Feature temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+paths:
+  /api/realtime/sessions:
+    post:
+      summary: Create a realtime session
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/realtime/sessions/{sessionId}:
+    get:
+      summary: Fetch a session by ID
+      security:
+        - BearerToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/realtime/sessions/{sessionId}/transition:
+    post:
+      summary: Transition a session state
+      security:
+        - BearerToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/realtime/sessions/{sessionId}/participants:
+    get:
+      summary: List participants for a session
+      security:
+        - BearerToken: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Participant list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantsResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/realtime/providers:
+    get:
+      summary: Inspect speech gateway + provider health
+      security:
+        - BearerToken: []
+      responses:
+        '200':
+          description: Provider snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderStatus'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/realtime/providers/runtime:
+    get:
+      summary: Fetch runtime provider overrides
+      security:
+        - BearerToken: []
+      responses:
+        '200':
+          description: Runtime override payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runtime:
+                    $ref: '#/components/schemas/ProviderRuntimeConfig'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+    put:
+      summary: Update runtime provider overrides
+      security:
+        - BearerToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderRuntimeConfig'
+      responses:
+        '202':
+          description: Update accepted and broadcast to gateway instances
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }

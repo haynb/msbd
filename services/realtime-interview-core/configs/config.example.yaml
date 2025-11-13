@@ -1,0 +1,106 @@
+{
+  "env": "development",
+  "server": {
+    "address": ":8084",
+    "grpc_address": ":9084",
+    "shutdown_grace_seconds": 20
+  },
+  "logging": {
+    "level": "info",
+    "pretty": true
+  },
+  "telemetry": {
+    "prometheus_addr": ":9096",
+    "event_stream": "realtime-interview-core:telemetry",
+    "kafka_topic": "",
+    "buffer_path": "data/telemetry-buffer",
+    "flush_interval_seconds": 5,
+    "stream_max_len": 2000
+  },
+  "database": {
+    "dsn": "postgres://heanyang:2580heanyang@38.165.21.136:5432/realtime_interview_core?sslmode=disable",
+    "max_open_conns": 20,
+    "max_idle_conns": 10,
+    "conn_max_lifetime_seconds": 1800
+  },
+  "redis": {
+    "addr": "38.165.21.136:6379",
+    "password": "heanyang",
+    "db": 0
+  },
+  "iam_client": {
+    "address": "127.0.0.1:9091",
+    "timeout_seconds": 3,
+    "insecure": true
+  },
+  "speech_gateway": {
+    "enabled": true,
+    "max_chunk_bytes": 65536,
+    "ack_deadline_millis": 100,
+    "session_idle_timeout_seconds": 30,
+    "buffer_prefix": "realtime-interview-core:chunks",
+    "buffer_ttl_seconds": 12,
+    "circuit_breaker_failures": 5,
+    "circuit_breaker_reset_seconds": 30,
+    "runtime_config_key": "realtime-interview-core:speech-gateway:runtime",
+    "runtime_update_channel": "realtime-interview-core:speech-gateway:updates"
+  },
+  "providers": {
+    "default": "aliyun",
+    "aliyun": {
+      "api_url": "wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1",
+      "domain": "nls-meta.cn-shanghai.aliyuncs.com",
+      "app_key": "changeme-app-key",
+      "token": "",
+      "token_url": "https://nls-gateway.cn-shanghai.aliyuncs.com/stream/v1/token",
+      "format": "pcm",
+      "sample_rate": 16000,
+      "enable_intermediate_result": true,
+      "enable_itn": true,
+      "enable_punctuation": true,
+      "enable_voice_detection": true
+    }
+  },
+  "orchestrator": {
+    "provider": "openai",
+    "short_reply_template": "configs/prompts/short_reply.tmpl",
+    "detailed_analysis_template": "configs/prompts/detailed_analysis.tmpl",
+    "coach_hint_template": "configs/prompts/coach_hint.tmpl",
+    "budget_window_seconds": 300,
+    "max_tokens_per_window": 8000,
+    "queue_stream": "realtime-interview-core:orchestrator.queue",
+    "providers": {
+      "openai": {
+        "api_key": "${OPENAI_API_KEY}",
+        "base_url": "https://api.gptgod.online/v1/chat/completions",
+        "model": "gpt-5-thinking-all",
+        "timeout_seconds": 30
+      },
+      "deepseek": {
+        "api_key": "${DEEPSEEK_API_KEY}",
+        "base_url": "https://api.deepseek.com/chat/completions",
+        "model": "deepseek-reasoner",
+        "timeout_seconds": 30
+      },
+      "glm": {
+        "api_key": "${GLM_API_KEY}",
+        "base_url": "https://open.bigmodel.cn/api/anthropic",
+        "model": "GLM-4.6",
+        "timeout_seconds": 30
+      }
+    }
+  },
+  "usage_export": {
+    "enabled": true,
+    "flush_interval_seconds": 15,
+    "batch_size": 128,
+    "buffer_path": "data/usage-buffer"
+  },
+  "streams": {
+    "session_events": "realtime-interview-core:session.events",
+    "speech_metrics": "realtime-interview-core:speech.metrics",
+    "orchestrator_outputs": "realtime-interview-core:orchestrator.outputs",
+    "usage": "realtime-interview-core:usage",
+    "control": "realtime-interview-core:control"
+  }
+}

@@ -1,0 +1,11 @@
+[package]
+name = "screenshot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+image = { workspace = true }
+screenshots = { workspace = true }
+thiserror = { workspace = true }
+rand = "0.8"

@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cloud_access}
+      POSTGRES_USER: ${POSTGRES_USER:-cloudaccess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudaccess}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  cloud-access-core:
+    build:
+      context: ../services/cloud-access-core
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["/app/cloud-access-core"]
+    env_file:
+      - ../configs/.env
+    environment:
+      CLOUD_ACCESS_CONFIG: /app/configs/config.example.yaml
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+      - "9091:9091"
+    volumes:
+      - ../configs:/app/configs:ro
+      - telemetry_buffer:/app/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  telemetry_buffer:

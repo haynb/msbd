@@ -1,0 +1,49 @@
+{
+  "processWatchlist": [
+    "obs64.exe",
+    "obs",
+    "xsplit.core",
+    "zhumu.app",
+    "zoom.us",
+    "screencast-o-matic",
+    "quicktime player",
+    "recordit",
+    "parallels",
+    "vmware",
+    "virtualbox"
+  ],
+  "vmIndicators": [
+    "vmtoolsd.exe",
+    "prl_cc.exe",
+    "vmsrvc.exe",
+    "qemu-ga"
+  ],
+  "focusSpike": {
+    "threshold": 6,
+    "intervalMs": 15000
+  },
+  "mitigations": {
+    "hideWindow": true,
+    "pauseAudio": true,
+    "pauseSession": true,
+    "forceKill": [
+      "obs64.exe",
+      "xsplit.core"
+    ]
+  },
+  "screenshot": {
+    "enabled": true,
+    "hotkey": "CommandOrControl+Shift+8",
+    "intervalSeconds": 180,
+    "redactions": [],
+    "encryptionKey": "ZGVtbzE3OTc3OTc5OTc5OTc5OTk=",
+    "keyId": "demo-local"
+  },
+  "events": {
+    "uploadMaxRetries": 5,
+    "backoffMs": 2000
+  },
+  "storage": {
+    "retentionMinutes": 30
+  }
+}

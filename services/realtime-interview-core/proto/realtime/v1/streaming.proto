@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package realtime.v1;
+
+option go_package = "github.com/hayhandsome/msbd/services/realtime-interview-core/proto/realtime/v1;realtimev1";
+
+message StreamAudioRequest {
+  oneof payload {
+    StreamInit init = 1;
+    AudioChunk chunk = 2;
+    ClientSignal signal = 3;
+  }
+}
+
+message StreamInit {
+  string session_id = 1;
+  string provider = 2;
+  int32 sample_rate = 3;
+  string format = 4;
+  map<string, string> metadata = 5;
+}
+
+message AudioChunk {
+  bytes data = 1;
+  int64 sequence = 2;
+  bool is_last = 3;
+}
+
+message ClientSignal {
+  string reason = 1;
+}
+
+message StreamAudioResponse {
+  oneof payload {
+    StreamAck ack = 1;
+    TranscriptEvent transcript = 2;
+    GatewayError error = 3;
+  }
+}
+
+message StreamAck {
+  string session_id = 1;
+  string provider = 2;
+  int32 sample_rate = 3;
+  string format = 4;
+}
+
+message TranscriptEvent {
+  int64 sequence = 1;
+  bool is_final = 2;
+  string text = 3;
+  double confidence = 4;
+  string provider = 5;
+  map<string, string> metadata = 6;
+}
+
+message GatewayError {
+  string code = 1;
+  string message = 2;
+  int32 retry_after_millis = 3;
+}
+
+service StreamingService {
+  rpc StreamAudio (stream StreamAudioRequest) returns (stream StreamAudioResponse);
+}

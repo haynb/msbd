@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package policy.v1;
+
+option go_package = "github.com/hayhandsome/msbd/services/cloud-access-core/proto/policy;policy";
+
+message CheckAccessRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  repeated string roles = 3;
+  string action = 4;
+  string resource = 5;
+}
+
+message CheckAccessResponse {
+  bool allowed = 1;
+  string reason = 2;
+  string rule_name = 3;
+}
+
+message EvaluateQuotaRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  repeated string roles = 3;
+  string resource = 4;
+  int64 amount = 5;
+}
+
+message EvaluateQuotaResponse {
+  bool allowed = 1;
+  string reason = 2;
+  string state = 3;
+  double remaining = 4;
+}
+
+service PolicyService {
+  rpc CheckAccess(CheckAccessRequest) returns (CheckAccessResponse);
+  rpc EvaluateQuota(EvaluateQuotaRequest) returns (EvaluateQuotaResponse);
+}

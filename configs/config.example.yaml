@@ -1,0 +1,75 @@
+{
+  "env": "development",
+  "server": {
+    "address": ":8080",
+    "grpc_address": ":9091",
+    "shutdown_grace_seconds": 15
+  },
+  "logging": {
+    "level": "info",
+    "pretty": true
+  },
+  "telemetry": {
+    "prometheus_addr": ":9090",
+    "event_stream": "cloud-access-core:audit",
+    "kafka_topic": "cloud-access-core.audit",
+    "buffer_path": "data/telemetry-buffer",
+    "flush_interval_seconds": 5,
+    "stream_max_len": 1000
+  },
+  "database": {
+    "dsn": "postgres://postgres:postgres@localhost:5432/cloud_access?sslmode=disable",
+    "max_open_conns": 10,
+    "max_idle_conns": 5,
+    "conn_max_lifetime_seconds": 1800
+  },
+  "redis": {
+    "addr": "127.0.0.1:6379",
+    "password": "",
+    "db": 0
+  },
+  "auth": {
+    "issuer": "cloud-access-core",
+    "web_audience": "cloud-access-web",
+    "device_audience": "cloud-access-device",
+    "access_token_ttl_seconds": 900,
+    "device_token_ttl_seconds": 900,
+    "refresh_token_ttl_seconds": 604800,
+    "session_prefix": "cloud-access-core",
+    "signing": {
+      "key_id": "dev-key",
+      "private_key_base64": "",
+      "public_key_base64": ""
+    }
+  },
+  "device": {
+    "pairing_code_ttl_seconds": 600,
+    "pairing_code_length": 8,
+    "pairing_store_prefix": "cloud-access-core:pairing",
+    "profile_key_base64": "",
+    "default_profile_name": "default",
+    "heartbeat_stream": "cloud-access-core:device-heartbeats",
+    "heartbeat_group": "iam-heartbeat",
+    "revocation_channel": "cloud-access-core:device-revocations"
+  },
+  "policy": {
+    "bucket_prefix": "cloud-access-core:quota",
+    "update_channel": "cloud-access-core:policy-updated",
+    "quota_window_seconds": 86400,
+    "grpc_address": ":9092"
+  },
+  "gateway": {
+    "enabled": true,
+    "routes_path": "configs/gateway.routes.yaml",
+    "admin_token": "dev-admin-token",
+    "rate_limit_prefix": "cloud-access-core:gateway",
+    "default_capacity": 120,
+    "default_refill_per_second": 60,
+    "default_window_seconds": 60,
+    "cert_bundle_path": "configs/gateway.certbundle.pem"
+  },
+  "config_center": {
+    "update_channel_prefix": "cloud-access-core:config-updates",
+    "signing_key_base64": ""
+  }
+}

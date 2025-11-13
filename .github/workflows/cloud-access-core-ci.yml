@@ -1,0 +1,36 @@
+name: cloud-access-core
+
+on:
+  push:
+    paths:
+      - "services/cloud-access-core/**"
+      - "configs/**"
+      - "k6/**"
+      - "scripts/checks.sh"
+      - ".github/workflows/cloud-access-core-ci.yml"
+  pull_request:
+    paths:
+      - "services/cloud-access-core/**"
+      - "configs/**"
+      - "k6/**"
+      - "scripts/checks.sh"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      CLOUD_ACCESS_TEST_POSTGRES_DSN: ${{ secrets.CLOUD_ACCESS_TEST_POSTGRES_DSN }}
+      CLOUD_ACCESS_TEST_REDIS_ADDR: ${{ secrets.CLOUD_ACCESS_TEST_REDIS_ADDR }}
+      CLOUD_ACCESS_TEST_REDIS_PASSWORD: ${{ secrets.CLOUD_ACCESS_TEST_REDIS_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/cloud-access-core/go.mod
+      - name: Run checks
+        run: ./scripts/checks.sh
+      - name: Run integration tests (cloud)
+        if: ${{ env.CLOUD_ACCESS_TEST_POSTGRES_DSN != '' && env.CLOUD_ACCESS_TEST_REDIS_ADDR != '' }}
+        run: |
+          cd services/cloud-access-core
+          go test -tags=integration ./tests/...
