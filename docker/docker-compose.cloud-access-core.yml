@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-cloudaccess}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudaccess}
     ports:
-      - "5432:5432"
+      - "${CLOUD_ACCESS_HOST_POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${CLOUD_ACCESS_HOST_REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
 
